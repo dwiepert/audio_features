@@ -1,0 +1,229 @@
+{
+    "wav2vec": {
+        "stride": 160,
+        "min_input_length": 465,
+        "hidden_states": {
+            "^feature_extractor.conv_layers.([0-9]+)$": "ext.\\g<1>",
+            "^feature_aggregator.conv_layers.([0-9]+)$": "agg.\\g<1>"
+        }
+    },
+    "vq_wav2vec": {
+        "stride": 160,
+        "min_input_length": 465
+    },
+    "wav2vec2": {
+        "stride": 320,
+        "min_input_length": 400,
+        "hidden_states": {
+            "^conv_layers.([0-9]+)$": "conv.\\g<1>",
+            "^encoder.layers.([0-9]+)$": "enc.\\g<1>"
+        }
+    },
+    "wav2vec2-base": {
+        "huggingface_hub": "facebook/wav2vec2-base",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "tera_960hr": {
+        "stride": 160,
+        "min_input_length": 201
+    },
+    "apc": {
+        "stride": 160,
+        "min_input_length": 560,
+        "discard_timesteps": [1, 0],
+        "hidden_states": {
+            "^rnn_layers.([0-9]+)$": "layer.\\g<1>"
+        }
+    },
+    "apc_960hr": {
+        "stride": 160,
+        "min_input_length": 560,
+        "discard_timesteps": [1, 0],
+        "hidden_states": {
+            "^rnn_layers.([0-9]+)$": "layer.\\g<1>"
+        }
+    },
+    "vq_apc_960hr": {
+        "stride": 160,
+        "min_input_length": 400
+    },
+    "mel": {
+        "stride": 160,
+        "min_input_length": 400
+    },
+    "mfcc": {
+        "stride": 160,
+        "min_input_length": 400
+    },
+    "spectrogram": {
+        "stride": 160,
+        "min_input_length": 400
+    },
+    "fbank": {
+        "stride": 160,
+        "min_input_length": 400
+    },
+    "hubert-base": {
+        "huggingface_hub": "facebook/hubert-base-ls960",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "hubert-large": {
+        "huggingface_hub": "facebook/hubert-large-ll60k",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "hubert-xlarge": {
+        "huggingface_hub": "facebook/hubert-xlarge-ll60k",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "wavlm-base": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "wavlm-base-plus": {
+        "huggingface_hub": "microsoft/wavlm-base-plus",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "wavlm-large": {
+        "huggingface_hub": "microsoft/wavlm-large",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "wavlm-base_random0": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "random_seed": 42
+    },
+    "wavlm-base_random1": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "random_seed": 3472190164
+    },
+    "wavlm-base_random2": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "random_seed": 3228356332
+    },
+    "wavlm-base_random3": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "random_seed": 360365154
+    },
+    "wavlm-base_random4": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "random_seed": 82215879
+    },
+    "wavlm-base_random0_freeze-ext": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "freeze_extractor": true,
+        "random_seed": 42
+    },
+    "wavlm-base_random1_freeze-ext": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "freeze_extractor": true,
+        "random_seed": 3472190164
+    },
+    "wavlm-base_random2_freeze-ext": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "freeze_extractor": true,
+        "random_seed": 3228356332
+    },
+    "wavlm-base_random3_freeze-ext": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "freeze_extractor": true,
+        "random_seed": 360365154
+    },
+    "wavlm-base_random4_freeze-ext": {
+        "huggingface_hub": "microsoft/wavlm-base",
+        "stride": 320,
+        "min_input_length": 400,
+        "random_weights": true,
+        "freeze_extractor": true,
+        "random_seed": 82215879
+    },
+    "whisper-tiny": {
+        "huggingface_hub": "openai/whisper-tiny",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "whisper-base": {
+        "huggingface_hub": "openai/whisper-base",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "whisper-small": {
+        "huggingface_hub": "openai/whisper-small",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "whisper-medium": {
+        "huggingface_hub": "openai/whisper-medium",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "whisper-large": {
+        "huggingface_hub": "openai/whisper-large",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "whisper-large-v2": {
+        "huggingface_hub": "openai/whisper-large-v2",
+        "stride": 320,
+        "min_input_length": 400
+    },
+    "encodec_24khz": {
+        "huggingface_hub": "facebook/encodec_24khz",
+        "stride": 320,
+        "min_input_length": 1
+    },
+    "apc_lstm": {
+        "s3prl": {
+            "model": "apc_local",
+            "ckpt": "/home/avaidya/src/Autoregressive-Predictive-Coding/logs/bs128-rl3-rhs512-rd0-adam-res-ts5-lstm.dir/bs128-rl3-rhs512-rd0-adam-res-ts5-lstm__s3prl.pt"
+        },
+        "stride": 160,
+        "min_input_length": 560,
+        "discard_timesteps": [1, 0],
+        "hidden_states": {
+            "^rnn_layers.([0-9]+)$": "layer.\\g<1>"
+        }
+    },
+    "deepspeech2-ls960": {
+        "deepspeech": {
+            "model_path": "/home/avaidya/src/deepspeech.pytorch/librispeech_pretrained_v3.ckpt"
+        },
+        "hidden_states": {
+            "^conv.seq_module.2": "conv.0",
+            "^conv.seq_module.5": "conv.1",
+            "^rnns.([0-9]+)$": "rnn.\\g<1>"
+        }
+    }
+}
