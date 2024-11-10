@@ -32,27 +32,30 @@ def save_features(sample:dict, features_save_path:Union[str,Path], times_save_pa
             assert '.npz' not in str(m), 'Extension should not be included in module_save_paths'
 
     out_features = sample['out_features']
+    if not isinstance(out_features, np.ndarray): out_features = out_features.numpy()
     times = sample['times']
+    if not isinstance(times, np.ndarray): times = times.numpy()
     
 
     if cci_features is None:
         os.makedirs(features_save_path.parent, exist_ok=True)
-        np.savez_compressed(str(features_save_path) + '.npz', features=out_features.numpy())
-        np.savez_compressed(str(times_save_path) + '.npz', times=times.numpy())
+        np.savez_compressed(str(features_save_path) + '.npz', features=out_features)
+        np.savez_compressed(str(times_save_path) + '.npz', times=times)
     else:
-        cci_features.upload_raw_array(features_save_path, out_features.numpy())
-        cci_features.upload_raw_array(times_save_path, times.numpy())
+        cci_features.upload_raw_array(features_save_path, out_features)
+        cci_features.upload_raw_array(times_save_path, times)
 
     # This is the "save name" of the module (not its original name)
     if mod_ft:
         module_features = sample['module_features']
         for module_name, features in module_features.items():
             features_save_path = module_save_paths[module_name]
-            times_save_path = f"{features_save_path}_times"
+            if not isinstance(features, np.ndarray): features=features.numpy()
+            #times_save_path = f"{features_save_path}_times"
             if cci_features is None:
                 os.makedirs(os.path.dirname(features_save_path), exist_ok=True)
-                np.savez_compressed(features_save_path + '.npz', features=features.numpy())
+                np.savez_compressed(features_save_path + '.npz', features=features)
                 #np.savez_compressed(times_save_path, times=times)
             else:
                 #cci_features.upload_raw_array(times_save_path, times)
-                cci_features.upload_raw_array(features_save_path, features.numpy())
+                cci_features.upload_raw_array(features_save_path, features)

@@ -43,3 +43,10 @@ Nothing has been implemented for this yet.
 If you can see the .vscode/launch.json file, that has debugging environments with the arguments you would need specified.
 
 Mainly, you should always have --require_full_context toggled on and probably --return_numpy and you should specify --stimulus_dir and --out_dir. You can mess with --batchsz but don't touch any of contextsz, chunksz, etc. 
+
+
+
+# TRACK CHANGES
+SPARC bug? - kernel size 400 (25ms) while stride is 320 (20ms)? output wasn't right dimensions before Amplitude thing - talk to Alex
+Also talk to alex about pitch
+do we want to just ignore voicing? 

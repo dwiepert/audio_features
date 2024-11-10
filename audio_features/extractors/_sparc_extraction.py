@@ -127,14 +127,17 @@ class SPARCExtractor(BaseExtractor):
             # idxs and indexing into `snippet_times`
             times.append(torch.stack([snippet_starts, snippet_ends], dim=1))
 
+            if not isinstance(chunk_features, list): chunk_features = [chunk_features]
             for c in chunk_features:
                 #get 'ema' features
                 ema = c['ema'][output_offset,:]
                 print('Currently loudness and pitch do NOT output at the same frame rate - need to explore SPARC more for that bug...')
                 ema = np.append(ema, c['loudness'][output_offset,:])
+                temp = c['pitch']
+                if temp.shape[-1] != c['ema'].shape[-1]: c['pitch'] = temp[:-1] #TODO: unsure about this
                 ema = np.append(ema, c['pitch'][output_offset,:])
                 ema = np.expand_dims(ema, axis=0) if self.return_numpy else torch.unsqueeze(ema,0)
-                out_features.append(ema)
+                out_features.append(ema)           
                 
         
         out_features = np.concatenate(out_features, axis=0) if self.return_numpy else torch.cat(out_features, dim=0) # shape: (timesteps, features)

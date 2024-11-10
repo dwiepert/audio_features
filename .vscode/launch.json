@@ -13,13 +13,15 @@
             "args": [
                 "--stimulus_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli/features",
                 "--model_name",
                 "en",
                 "--feature_type",
                 "sparc",
                 "--full_context",
                 "--batchsz",
-                "2",
+                "1",
                 "--contextsz",
                 "1000",
                 "--return_numpy"
@@ -34,6 +36,8 @@
             "args": [
                 "--stimulus_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli/features",
                 "--model_name",
                 "wavlm-large",
                 "--feature_type",

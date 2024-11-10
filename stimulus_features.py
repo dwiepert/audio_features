@@ -26,7 +26,7 @@ if __name__ == "__main__":
     #Common arguments
     parser.add_argument('--stimulus_dir', type=str, required=True,
                         help='Specify a local directory with the audio stimulus you want to extract features from. Audio should be already processed.')
-    parser.add_argument('--out_dir', type=str, default='./output_features/',
+    parser.add_argument('--out_dir', type=str, required=True,
                         help="Specify a local directory to save the features to.")
     parser.add_argument('--feature_type', type=str, default="hf",
                         help="Specify what feature type to extract")
@@ -114,6 +114,7 @@ if __name__ == "__main__":
 
     #set save path name
     model_save_path = Path(f"features_cnk{chunksz_sec:0.1f}_ctx{contextsz_sec:0.1f}_pick{args.num_select_frames}_skip{args.frame_skip}/{args.feature_type}")
+    model_save_path = args.out_dir / model_save_path
     if args.model_name:
         model_save_path = model_save_path / args.model_name
     if args.stride:
@@ -178,7 +179,7 @@ if __name__ == "__main__":
         else: 
             module_save_paths = None
         # STEP 6: SAVE OUTPUTS
-        save_features(output_sample, stimulus_name=stimulus_name, features_save_path=features_save_path,
+        save_features(output_sample, features_save_path=features_save_path,
                        times_save_path=times_save_path, module_save_paths=module_save_paths, cci_features=cci_features)
         
 
