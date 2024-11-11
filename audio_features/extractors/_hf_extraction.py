@@ -40,8 +40,8 @@ def set_up_hf_extractor(model_name:str, use_featext:bool, sel_layers: Optional[L
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
     :return: initialized extractor
     """
-    assert model_name, 'Must give model name for hugging face models'
-    assert model_config_path, 'Must give model config for hugging face models'
+    assert model_name is not None, 'Must give model name for hugging face models'
+    assert model_config_path is not None, 'Must give model config for hugging face models'
     #Load model configuration
     with open(model_config_path, 'r') as f:
         model_config = json.load(f)[model_name]
