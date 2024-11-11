@@ -1,3 +1,5 @@
-from ._save_feats import save_features
+from ._save_feats import *
+from ._load_feats import *
 
-__all__ = ['save_features']
+__all__ = ['save_features',
+           'load_features']
