@@ -125,7 +125,7 @@ class hfExtractor(BaseExtractor):
     """
     def __init__(self, model: PreTrainedModel, target_sample_rate:int=16000, min_length_samples:int=0,
                  feature_extractor=None, sel_layers: Optional[List[int]]=None, return_numpy:bool=True,
-                 num_select_frames:int=1, frame_skip:int=5, frame_length_sec:float=None):
+                 num_select_frames:int=1, frame_skip:int=5, frame_len_sec:float=None):
         
         #INHERITED VALUES
         super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, 
@@ -139,7 +139,7 @@ class hfExtractor(BaseExtractor):
 
         self.feature_extractor = feature_extractor # model specific feature extractor
         
-        self.frame_len_sec = frame_length_sec #unnecessary variable, useful for understanding the model you are extracting from 
+        self.frame_len_sec = frame_len_sec #unnecessary variable, useful for understanding the model you are extracting from 
 
         self.move_to_cpu = False #for hugging face, if you want to return numpy you need to move it to the cpu
         if self.return_numpy:
