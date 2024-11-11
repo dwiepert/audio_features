@@ -41,6 +41,8 @@ def set_up_hf_extractor(model_name:str, use_featext:bool, sel_layers: Optional[L
     :return: initialized extractor
     """
     assert model_name is not None, 'Must give model name for hugging face models'
+    print(model_name)
+    print(model_config_path)
     assert model_config_path is not None, 'Must give model config for hugging face models'
     #Load model configuration
     with open(str(model_config_path), 'r') as f:

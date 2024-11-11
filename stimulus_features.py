@@ -94,6 +94,8 @@ if __name__ == "__main__":
     # STEP 1: some initial variable things
     args.stimulus_dir = Path(args.stimulus_dir)
     args.out_dir = Path(args.out_dir)
+    print(args.model_name)
+    print(args.model_config_path)
     if args.model_config_path:
         args.model_config_path = Path(args.model_config_path)
 
@@ -132,21 +134,17 @@ if __name__ == "__main__":
     
     # STEP 3: TODO: FEATURE EXTRACTION TYPES
     if 'hf' in args.feature_type: #there are multiple hugging face features, so only check that hf is in the type
-        extractor = set_up_hf_extractor(model_name=args.model_name, use_featext=args.use_featext, sel_layers=args.layers, 
-                                         target_sample_rate=args.target_sample_rate, model_config_path=args.model_config_path, return_numpy=args.return_numpy, 
-                                         num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
+        extractor = set_up_hf_extractor(model_name=args.model_name, use_featext=args.use_featext, sel_layers=args.layers, target_sample_rate=args.target_sample_rate, model_config_path=args.model_config_path, return_numpy=args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
     elif args.feature_type=='sparc':
         extractor = set_up_sparc_extractor(model_name=args.model_name, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples)
     
     elif 'mfcc' in args.feature_type:
-        extractor = set_up_mfcc_extractor(n_mfcc=args.n_mfcc, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, 
-                                          return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
+        extractor = set_up_mfcc_extractor(n_mfcc=args.n_mfcc, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
     else:
         raise NotImplementedError(f'{args.feature_type} not supported.')
     
     # STEP 4: Set up batch extrator object
-    batching = BatchExtractor(extractor=extractor, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, 
-                              min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence)
+    batching = BatchExtractor(extractor=extractor, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence)
     
     # STEP 5: RUN BATCHING FOR EACH STIMULUS
     # Make sure that all preprocessed stimuli exist and are readable.
@@ -179,8 +177,7 @@ if __name__ == "__main__":
         else: 
             module_save_paths = None
         # STEP 6: SAVE OUTPUTS
-        save_features(output_sample, features_save_path=features_save_path,
-                       times_save_path=times_save_path, module_save_paths=module_save_paths, cci_features=cci_features)
+        save_features(output_sample, features_save_path=features_save_path,times_save_path=times_save_path, module_save_paths=module_save_paths, cci_features=cci_features)
         
 
    
