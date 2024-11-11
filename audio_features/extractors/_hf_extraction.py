@@ -41,7 +41,7 @@ def set_up_hf_extractor(model_name:str, use_featext:bool, sel_layers: Optional[L
     :return: initialized extractor
     """
     assert model_name, 'Must give model name for hugging face models'
-    assert model_config, 'Must give model config for hugging face models'
+    assert model_config_path, 'Must give model config for hugging face models'
     #Load model configuration
     with open(model_config_path, 'r') as f:
         model_config = json.load(f)[model_name]

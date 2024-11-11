@@ -13,10 +13,10 @@ $ pip install .
 ```
 
 This will be the first stage of setting up this package to run. You will also need to install:
-* https://github.com/dwiepert/audio_preprocessing
-* https://github.com/dwiepert/database_utils
+* https://github.com/dwiepert/audio_preprocessing.git
+* https://github.com/dwiepert/database_utils.git
 * ffmpeg=6.1.1, you can do this with `conda install conda-forge::ffmpeg=6.1.1`
-* https://github.com/cheoljun95/Speech-Articulatory-Coding.git
+* https://github.com/dwiepert/sparc.git
 
 The other git packages are installed with a similar process (git clone, cd into the new repo, pip install), though you can check out their READMEs for the full process.
 
