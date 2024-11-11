@@ -43,7 +43,7 @@ def set_up_hf_extractor(model_name:str, use_featext:bool, sel_layers: Optional[L
     assert model_name is not None, 'Must give model name for hugging face models'
     assert model_config_path is not None, 'Must give model config for hugging face models'
     #Load model configuration
-    with open(model_config_path, 'r') as f:
+    with open(str(model_config_path), 'r') as f:
         model_config = json.load(f)[model_name]
         model_hf_path = model_config['huggingface_hub']
 
