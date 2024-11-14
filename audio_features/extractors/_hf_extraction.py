@@ -2,7 +2,7 @@
 Extract features using hugging face
 
 Author(s): Aditya Vaidya, Daniela Wiepert
-Last Modified: 11/08/2024
+Last Modified: 11/14/2024
 """
 
 #IMPORTS
@@ -10,25 +10,27 @@ Last Modified: 11/08/2024
 import collections
 import copy
 import json
-import torch
+import os
 from pathlib import Path
 from typing import Optional, List, Union
 
 ##third-party
 import numpy as np
+import torch
 from transformers import AutoModel, AutoModelForPreTraining, PreTrainedModel,\
                          AutoFeatureExtractor, WhisperModel
 
 ##local
 from ._base_extraction import BaseExtractor
 
-def set_up_hf_extractor(model_name:str, use_featext:bool, sel_layers: Optional[List[int]], 
+def set_up_hf_extractor(model_name:str, save_path:Union[str, Path], use_featext:bool, sel_layers: Optional[List[int]],
                         target_sample_rate:int=16000, model_config_path:Union[str,Path]='audio_features/configs/hf_model_configs.json', 
                         return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5):
     """
     Function for setting up an hf feature extractor (loading model in, setting seeds, freezing extractor, etc.)
 
     :param model_name: str, hugging face model name (key in model_configs)
+    :param save_path: local path to save extractor configuration information to
     :param use_featext: bool, true if model has a separate feature extractor
     :param sel_layers: List[int], list of layers to generate features for. Optional
     :param target_sample_rate: int, target sampling rate (default=16000 hz)
@@ -41,8 +43,6 @@ def set_up_hf_extractor(model_name:str, use_featext:bool, sel_layers: Optional[L
     :return: initialized extractor
     """
     assert model_name is not None, 'Must give model name for hugging face models'
-    print(model_name)
-    print(model_config_path)
     assert model_config_path is not None, 'Must give model config for hugging face models'
     #Load model configuration
     with open(str(model_config_path), 'r') as f:
@@ -103,7 +103,7 @@ def set_up_hf_extractor(model_name:str, use_featext:bool, sel_layers: Optional[L
             model.feature_extractor.load_state_dict(ext_state_dict)
             del ext_state_dict # try to save some memory
 
-    return hfExtractor(model=model, feature_extractor=feature_extractor, target_sample_rate=target_sample_rate, 
+    return hfExtractor(model=model, model_type=model_name, save_path=save_path, feature_extractor=feature_extractor, target_sample_rate=target_sample_rate, 
                        min_length_samples=min_length_samples, sel_layers=sel_layers, return_numpy=return_numpy,
                        num_select_frames=num_select_frames,frame_skip=frame_skip, frame_len_sec=frame_len_sec)
     
@@ -112,6 +112,8 @@ class hfExtractor(BaseExtractor):
     Feature extractor based on hugging face models
 
     :param model: pretrained HF model
+    :param model_type: str, type of hugging face model
+    :param save_path: local path to save extractor configuration information to
     :param feature_extractor: loaded feature extractor (default = None)
     :param target_sample_rate: int, target sample rate for model
     :param min_length_samples: int, minimum length a sample can be to be fed into the model
@@ -123,7 +125,7 @@ class hfExtractor(BaseExtractor):
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
     :param frame_len_sec: int, information on how long a frame is in the model in seconds
     """
-    def __init__(self, model: PreTrainedModel, target_sample_rate:int=16000, min_length_samples:int=0,
+    def __init__(self, model: PreTrainedModel, model_type:str, save_path:Union[str,Path], target_sample_rate:int=16000, min_length_samples:int=0,
                  feature_extractor=None, sel_layers: Optional[List[int]]=None, return_numpy:bool=True,
                  num_select_frames:int=1, frame_skip:int=5, frame_len_sec:float=None):
         
@@ -131,8 +133,10 @@ class hfExtractor(BaseExtractor):
         super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, 
                          return_numpy=return_numpy, num_select_frames=num_select_frames, frame_skip=frame_skip)
         
+
         #Hugging Face specific values
         self.model = model #pretrained HF model
+        self.model_type = model_type
         torch.set_grad_enabled(False) # VERY important! (for memory)
         self.model.eval()
         self.is_whisper_model = isinstance(self.model, WhisperModel)
@@ -149,6 +153,28 @@ class hfExtractor(BaseExtractor):
 
         assert len(self.output_inds) == 1, "Only one output per evaluation is "\
             "supported for Hugging Face (because they don't provide the downsampling rate)"
+        
+        self.config = {'feature_type':'hf', 'model_type': self.model_type, 'target_sample_rate': self.target_sample_rate, 'min_length_samples':self.min_length_samples,
+                       'sel_layers': self.sel_layers, 'return_numpy': self.return_numpy, 'num_select_frames':self.num_select_frames, 'frame_skip': self.frame_skip,
+                       'frame_len_sec': self.frame_len_sec}
+        
+        #saving things
+        self.save_path = Path(save_path)
+        if not self.save_path.exists(): os.makedirs(str(self.save_path))
+        with open(str(save_path /'hfExtractor_config.json'), 'w') as f:
+            json.dump(self.config, f)
+
+        self.modules = {}
+        if self.sel_layers is not None:
+            for s in self.sel_layers:
+                if self.is_whisper_model:
+                    # Leave the option open for using decoder layers in the
+                    # future
+                    module_name = f"encoder.{s}"
+                else:
+                    module_name = f"layer.{s}"
+                    
+                if s not in self.modules: self.modules[s] = module_name
     
     def __call__(self, sample:dict):
         """
@@ -272,18 +298,13 @@ class hfExtractor(BaseExtractor):
                 if self.sel_layers:
                     if layer_idx not in self.sel_layers: continue
 
-                layer_representation = layer_activations[:, output_offset, :] # shape: (batchsz, hidden_size)
-                if self.move_to_cpu: layer_representation = layer_representation.cpu()
-                if self.return_numpy: layer_representation = layer_representation.numpy() # TODO: convert to numpy at the end
-                
-                if self.is_whisper_model:
-                    # Leave the option open for using decoder layers in the
-                    # future
-                    module_name = f"encoder.{layer_idx}"
-                else:
-                    module_name = f"layer.{layer_idx}"
+                    layer_representation = layer_activations[:, output_offset, :] # shape: (batchsz, hidden_size)
+                    if self.move_to_cpu: layer_representation = layer_representation.cpu()
+                    if self.return_numpy: layer_representation = layer_representation.numpy() # TODO: convert to numpy at the end
+                    
+                    module_name = self.modules[layer_idx]
 
-                module_features[module_name].append(layer_representation)
+                    module_features[module_name].append(layer_representation)
         
         out_features = np.concatenate(out_features, axis=0) if self.return_numpy else torch.cat(out_features, dim=0) # shape: (timesteps, features)
         module_features = {name: (np.concatenate(features, axis=0) if self.return_numpy else torch.cat(features, dim=0))\

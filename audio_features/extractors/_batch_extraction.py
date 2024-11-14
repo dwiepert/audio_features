@@ -2,21 +2,25 @@
 Extract features in batched snippets
 
 Authors: Aditya Vaidya, Daniela Wiepert
-Last Modified: 11/08/2024
+Last Modified: 11/04/2024
 """
 #IMPORTS
 ##built-in
 import collections
-import torch
-import torchvision 
-from typing import Dict
+import json
+import os
+from pathlib import Path
+from typing import Dict, Union, List
 
 ##third-party
 import numpy as np
 from tqdm import tqdm
+import torch
+import torchvision 
 
 ##local
 from audio_preprocessing.transforms import Path2Wave, ResampleAudio, Window, PadSilence
+from audio_features.io import save_features
 
 class BatchExtractor:
     """
@@ -25,6 +29,9 @@ class BatchExtractor:
     Expects chunksz and contextsz as seconds
     
     :param extractor: feature extractor for feature type
+    :param save_path: location to save features to
+    :param cci_features: cotton candy interface for saving features
+    :param fnames: list of file names we are extracting features for
     :param batchsz: int, batch size for feature. Default=1
     :param chunksz: float, chunk size in seconds. Default=0.1
     :param contextsz: float, context size in seconds. Default=8
@@ -33,10 +40,15 @@ class BatchExtractor:
     :param return_numpy: bool, true if returning numpy
     :param pad_silence: bool, true if padding silence
     """
-    def __init__(self, extractor, batchsz:int=1, chunksz:float=0.1, contextsz:float=8., require_full_context:bool=True, 
+    def __init__(self, extractor, save_path:Union[str, Path],  cci_features=None, fnames:List=[], overwrite:bool=False,
+                 batchsz:int=1, chunksz:float=0.1, contextsz:float=8., require_full_context:bool=True, 
                  min_length_samples:float=0, return_numpy:bool=True, pad_silence:bool=False):
         self.extractor = extractor
-        print('Assert extractor type once an extractor is working')
+        self.cci_features=cci_features 
+        self.save_path=Path(save_path)
+        if not self.save_path.exists(): os.makedirs(str(self.save_path))
+        self.fnames=fnames
+        self.overwrite = overwrite
         self.batchsz = batchsz
         self.sampling_rate = self.extractor.target_sample_rate
         self.chunksz=chunksz
@@ -54,7 +66,61 @@ class BatchExtractor:
             self.padding = PadSilence(context_sz=self.contextsz)
             initial_transforms.append(self.padding)
         self.transforms = torchvision.transforms.Compose(initial_transforms)
-        self.return_numpy = return_numpy      
+        self.return_numpy = return_numpy
+
+        self.config = {'batchsz': self.batchsz, 'sampling_rate': self.sampling_rate, 'chunksz':self.chunksz, 'contextsz':self.contextsz, 'fnames':self.fnames,
+                       'require_full_context':self.require_full_context, 'min_length_samples': self.min_length_samples, 'pad_silence':self.pad_silence,
+                       'return_numpy': self.return_numpy}
+        
+        with open(str(save_path /'BatchExtractor_config.json'), 'w') as f:
+            json.dump(self.config,f)
+        
+        self._get_result_paths()
+
+    def _get_result_paths(self):
+        self.result_paths = {}
+        self.result_paths['features'] = {}
+        self.result_paths['times'] = {}
+
+        self.modules = self.extractor.modules
+        if self.modules is not None:
+            self.result_paths['modules'] = {}
+
+        for f in self.fnames:
+            self.result_paths['features'][f] = self.save_path / f
+            self.result_paths['times'][f] = self.save_path / (f+'_times')
+
+            if self.modules is not None:
+                for m in self.modules:
+                    n = self.save_path/self.modules[m]
+                    if not n.exists(): os.makedirs(n)
+                    self.result_paths['modules'][f] = {self.modules[m]:n/f}
+    
+    def _save(self, sample, fname):
+        feats = self.result_paths['features']
+        if fname not in feats:
+            new_name = self.save_path / fname
+            self.result_paths['features'][fname] = new_name
+        
+        t = self.result_paths['times']
+        if fname not in t:
+            new_name = self.save_path / fname+"_times"
+            self.result_paths['times'][fname] = new_name
+
+        
+        if sample['module_features'] is not None:
+            m = self.result_paths['modules']
+            if fname not in m:
+                new_name = self.save_path / fname
+                for m in self.modules:
+                    n = self.save_path/m
+                    self.result_paths['modules'][fname] = {m:n/fname}
+                
+            module_path = self.result_paths['modules'][fname]
+        else:
+            module_path=None
+        
+        save_features(sample, self.result_paths['features'][fname], self.result_paths['times'][fname], module_path, self.cci_features)
 
 
     def __call__(self, sample: Dict):
@@ -63,8 +129,19 @@ class BatchExtractor:
         :param sample: dict, audio sample with metadata
         :return sample: sample post feature extraction
         """
+        fname = sample['fname']
+        if not self.overwrite:
+            if self.cci_features is None:
+                if Path(str(self.result_paths['features'][fname]) + '.npz').exists():
+                    print(f"Skipping {fname}.")
+                    return
+            else: 
+                if self.cci_features.exists_object(self.result_paths['features'][fname]):
+                    print(f"Skipping {fname}.")
+                    return
         #expects samples to come in as a path that has ALREADY BEEN PREPROCESSED, then run path to wave and window. Window will check that sample rate is target sample rate
         sample = self.transforms(sample)
+        
         wav = torch.squeeze(sample['waveform'])
 
         snippet_iter = sample['snippet_iter']
@@ -98,7 +175,6 @@ class BatchExtractor:
             if (snippet_starts.shape[0] != batched_wav_in.shape[0]) and (snippet_starts.shape[0] != self.batchsz):
                 batched_wav_in = batched_wav_in[:snippet_starts.shape[0]]
 
-        
             sample2['waveform'] = batched_wav_in
             sample2['snippet_starts'] = snippet_starts
             sample2['snippet_ends'] = snippet_ends
@@ -131,14 +207,20 @@ class BatchExtractor:
                             for name, features in module_features.items()}
             assert all(features.shape[0] == out_features.shape[0] for features in module_features.values()),\
                 "Missing timesteps in the module activations!! (possible PyTorch bug)"
+        else: 
+            module_features = None
         times = np.concatenate(times, axis=0) if self.return_numpy else torch.cat(times, dim=0) / self.sampling_rate # shape: (timesteps, features)
         #times = np.concatenate(timestorch.cat(times, dim=0) / self.sampling_rate # convert samples --> seconds. shape: (timesteps,)
-
+    
         sample['final_outputs'] = out_features
-        if mod_ft: sample['module_features'] = module_features  
         sample['times']= times
+        sample['module_features'] = module_features
+        
         if self.pad_silence:
             sample = self.padding.remove_padding(sample)
+        #print('Why remove silence')
+
+        self._save(sample, fname)
 
         return sample
     

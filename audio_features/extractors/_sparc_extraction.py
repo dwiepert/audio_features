@@ -2,15 +2,15 @@
 Extract EMA features using SPARC
 
 Author(s): Daniela Wiepert, Aditya Vaidya
-Last Modified: 11/08/2024
+Last Modified: 11/14/2024
 """
 
 #IMPORTS
 ##built-in
-import collections
-import torch
+import json
+import os
 from pathlib import Path
-from typing import Optional, List, Union
+from typing import List, Union
 
 ##third-party
 import numpy as np
@@ -20,11 +20,13 @@ import torch
 from ._base_extraction import BaseExtractor
 from sparc import load_model, SPARC, SpeechWave
 
-def set_up_sparc_extractor(model_name:str="en", config:Union[str,Path]=None, ckpt:str=None, use_penn:bool=False,
+def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", config:Union[str,Path]=None, ckpt:str=None, use_penn:bool=False,
                            target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None):
     """
     Set up sparc extractor
+    :param save_path: local path to save extractor configuration information to
     :param model_name: str, sparc model name, from [en, multi, en+, feature_extraction]
+    :param save_path: local path to save extractor configuration information to
     :param config: default None, see if configs exist in the Speech articulatory coding github
     :param ckpt: default None, can load a model checkpoint if desired
     :param use_penn:bool, specify whether to use pitch tracker
@@ -36,14 +38,15 @@ def set_up_sparc_extractor(model_name:str="en", config:Union[str,Path]=None, ckp
     assert model_name, 'Must give model name for sparc models'
 
     use_cuda = torch.cuda.is_available()
+    print(f"use cuda: {use_cuda}")
     if use_cuda: 
         device = "cuda"
     else:
         device = "cpu"
     model = load_model(model_name=model_name, config=config, ckpt=ckpt, device=device, use_penn=use_penn)
     #TODO: figure out frame_length_sec
-    print('Dont forget frame length sec')
-    return SPARCExtractor(model=model, target_sample_rate=target_sample_rate, return_numpy=return_numpy, min_length_samples=min_length_samples)
+
+    return SPARCExtractor(model=model, model_type=model_name, save_path=save_path, target_sample_rate=target_sample_rate, return_numpy=return_numpy, min_length_samples=min_length_samples)
 
 
 class SPARCExtractor(BaseExtractor):
@@ -51,6 +54,8 @@ class SPARCExtractor(BaseExtractor):
     Extract EMA and other related features with SPARC
 
     :param model: pretrained SPARC model
+    :param model_type: str, type of SPARC model
+    :param save_path: local path to save extractor configuration information to
     :param target_sample_rate: int, target sample rate for model
     :param min_length_samples: int, minimum length a sample can be to be fed into the model
     :param return_numpy: bool, true if returning numpy
@@ -60,18 +65,30 @@ class SPARCExtractor(BaseExtractor):
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
     :param frame_len_sec: int, information on how long a frame is in the model in seconds
     """
-    def __init__(self, model:SPARC, target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None,
+    def __init__(self, model:SPARC, model_type:str,  save_path: Union[str, Path], target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None,
                  num_select_frames:int=1, frame_skip:int=5, frame_length_sec:float=None):
         
         super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples,
                          return_numpy=return_numpy, num_select_frames=num_select_frames, frame_skip=frame_skip)
         self.model = model
+        self.model_type = model_type
         self.frame_length_sec = frame_length_sec
     
         #self.output_inds = np.array([-1 - self.frame_skip*i for i in reversed(range(self.num_select_frames))])
         #TODO: figure out output inds for SPARC
         assert len(self.output_inds) == 1, "Only one output per evaluation is "\
             "supported  (because they don't provide the downsampling rate)"
+        
+        self.config = {'feature_type': 'sparc', 'model_type': self.model_type, 'target_sample_rate': self.target_sample_rate, 'min_length_samples':self.min_length_samples,
+                       'return_numpy': self.return_numpy, 'num_select_frames':self.num_select_frames, 'frame_skip': self.frame_skip}
+        
+        #saving things
+        self.save_path = Path(save_path)
+        if not self.save_path.exists(): os.makedirs(str(self.save_path))
+        with open(str(save_path /'SPARCExtractor_config.json'), 'w') as f:
+            json.dump(self.config, f)
+
+        self.modules= None
     
     def _temp_sparc_processing(self, wavfiles: List[np.ndarray]):
         """
@@ -105,7 +122,6 @@ class SPARCExtractor(BaseExtractor):
         assert sample['sample_rate'] == self.target_sample_rate , f'Sample rate of the audio should be {self.target_sampling_rate}. Please check audio processing.'
 
         #initialize common output variables 
-        module_features = collections.defaultdict(list)
         out_features = []
         times = [] # times are shared across all layers
 
@@ -131,12 +147,12 @@ class SPARCExtractor(BaseExtractor):
             for c in chunk_features:
                 #get 'ema' features
                 ema = c['ema'][output_offset,:]
-                print('Currently loudness and pitch do NOT output at the same frame rate - need to explore SPARC more for that bug...')
+                #print('Currently loudness and pitch do NOT output at the same frame rate - need to explore SPARC more for that bug...')
                 ema = np.append(ema, c['loudness'][output_offset,:])
                 temp = c['pitch']
                 if temp.shape[-1] != c['ema'].shape[-1]: c['pitch'] = temp[:-1] #TODO: unsure about this
                 ema = np.append(ema, c['pitch'][output_offset,:])
-                ema = np.expand_dims(ema, axis=0) if self.return_numpy else torch.unsqueeze(ema,0)
+                ema = np.expand_dims(ema, axis=0) if self.return_numpy else torch.unsqueeze(torch.from_numpy(ema),0)
                 out_features.append(ema)           
                 
         

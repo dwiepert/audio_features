@@ -2,13 +2,12 @@
 Extract features from stimulus
 
 Author(s): Daniela Wiepert, Lasya Yakkala, Rachel Yamamoto
-Last modified: 11/08/2024
+Last modified: 11/14/2024
 """
 #IMPORTS
 ##built-in
 import argparse
 import collections
-import os
 from pathlib import Path
 
 ##third-party
@@ -17,8 +16,6 @@ import torchaudio
 
 ##local
 from audio_features.extractors import *
-from audio_features.common import BatchExtractor
-from audio_features.io import save_features
 from audio_preprocessing.io import select_stimuli
 
 if __name__ == "__main__":
@@ -102,6 +99,7 @@ if __name__ == "__main__":
     if (args.out_bucket is not None) and (args.out_bucket != ''):
         cci_features = cc.get_interface(args.out_bucket, verbose=False)
         print("Saving features to bucket", cci_features.bucket_name)
+        raise NotImplementedError("Can't save to bucket just yet")
     else:
         cci_features = None
         print('Saving features to local filesystem.')
@@ -124,7 +122,7 @@ if __name__ == "__main__":
         # separate directory.
         model_save_path = model_save_path / f"stride_{args.stride}"
     print('Saving features to:', model_save_path)
-
+    
     # STEP 2: STIMULUS SELECTION
     stimulus_paths = select_stimuli(stim_dir=args.stimulus_dir, stim_bucket=args.stim_bucket, sessions=args.sessions, stories=args.stories, recursive=args.recursive)
     assert len(stimulus_paths) > 0, "no stimuli to process!"
@@ -134,19 +132,19 @@ if __name__ == "__main__":
     
     # STEP 3: TODO: FEATURE EXTRACTION TYPES
     if 'hf' in args.feature_type: #there are multiple hugging face features, so only check that hf is in the type
-        extractor = set_up_hf_extractor(model_name=args.model_name, use_featext=args.use_featext, sel_layers=args.layers, target_sample_rate=args.target_sample_rate, model_config_path=args.model_config_path, return_numpy=args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
+        extractor = set_up_hf_extractor(model_name=args.model_name, save_path=model_save_path, use_featext=args.use_featext, sel_layers=args.layers, target_sample_rate=args.target_sample_rate, model_config_path=args.model_config_path, return_numpy=args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
     elif args.feature_type=='sparc':
-        extractor = set_up_sparc_extractor(model_name=args.model_name, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples)
-    
+        extractor = set_up_sparc_extractor(model_name=args.model_name, save_path=model_save_path, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples)
     elif 'mfcc' in args.feature_type:
-        extractor = set_up_mfcc_extractor(n_mfcc=args.n_mfcc, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
+        extractor = set_up_mfcc_extractor(save_path=model_save_path, n_mfcc=args.n_mfcc, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
     else:
         raise NotImplementedError(f'{args.feature_type} not supported.')
     
     # STEP 4: Set up batch extrator object
-    batching = BatchExtractor(extractor=extractor, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence)
+    batching = BatchExtractor(extractor=extractor, save_path=model_save_path, fnames=list(stimulus_paths.keys()), overwrite=args.overwrite, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence)
     
     # STEP 5: RUN BATCHING FOR EACH STIMULUS
+   
     # Make sure that all preprocessed stimuli exist and are readable.
     for stimulus_name, stimulus_local_path in stimulus_paths.items():
         try:
@@ -155,29 +153,7 @@ if __name__ == "__main__":
             f'{stimulus_name} does not exist at {stimulus_local_path}. Skipping stimulus.'
             continue
         
-        features_save_path = model_save_path / stimulus_name
-        times_save_path = Path(f"{str(features_save_path)}_times")
-        
-        
-        if not args.overwrite:
-            if cci_features is None:
-                if os.path.exists(str(times_save_path) + '.npz'):
-                    print(f"Skipping {stimulus_name}, timestamps found at {times_save_path}")
-                    continue
-            else:
-                if cci_features.exists_object(times_save_path):
-                    print(f"Skipping {stimulus_name}, timestamps found at {times_save_path}")
-                    continue
-        
-        sample = {'path':str(stimulus_local_path)}
+        sample = {'path':str(stimulus_local_path), 'fname':stimulus_name}
         output_sample = batching(sample)
-
-        if 'module_features' in output_sample:
-            module_save_paths = {module: os.path.join(str(model_save_path), module, stimulus_name) for module in output_sample['module_features'].keys()}
-        else: 
-            module_save_paths = None
-        # STEP 6: SAVE OUTPUTS
-        save_features(output_sample, features_save_path=features_save_path,times_save_path=times_save_path, module_save_paths=module_save_paths, cci_features=cci_features)
-        
 
    

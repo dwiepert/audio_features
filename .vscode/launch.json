@@ -22,8 +22,6 @@
                 "--full_context",
                 "--batchsz",
                 "1",
-                "--contextsz",
-                "1000",
                 "--return_numpy"
             ]
         },
@@ -44,9 +42,12 @@
                 "hf",
                 "--use_featext",
                 "--full_context",
-                "--contextsz",
-                "1000",
-                "--return_numpy"
+                "--return_numpy",
+                "--model_config_path",
+                "/Users/dwiepert/Documents/GitHub/audio_features/audio_features/configs/hf_model_configs.json",
+                "--overwrite",
+                "--layers",
+                "9"
             ]
         },
         {
@@ -58,8 +59,10 @@
             "args": [
                 "--stimulus_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli/features",
                 "--feature_type",
-                "test",
+                "mfcc",
                 "--full_context",
                 "--return_numpy"
             ]

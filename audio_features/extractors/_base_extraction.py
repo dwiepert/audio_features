@@ -29,3 +29,4 @@ class BaseExtractor:
         self.frame_skip=frame_skip
         # Output inds determines how many features to save per chunk. With defaults it should be 1 per chunk, specifically the last one (-1)
         self.output_inds = np.array([int(-1 - self.frame_skip*i) for i in reversed(range(self.num_select_frames))])
+        self.modules = None

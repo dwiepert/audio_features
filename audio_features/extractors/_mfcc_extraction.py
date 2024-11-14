@@ -7,6 +7,10 @@ Last Modified: 11/08/2024
 #IMPORTS
 ##built-in
 import collections
+import json
+import os
+from pathlib import Path
+from typing import Union
 
 ##third-party
 import librosa
@@ -41,12 +45,14 @@ SOME KEY THINGS ABOUT BUILDING EXTRACTORS WITHIN THIS PACKAGE:
 4) Run and profit
 """
 
-def set_up_mfcc_extractor(target_sample_rate:int=16000, min_length_samples:int=0, 
+def set_up_mfcc_extractor(save_path:Union[str,Path],n_mfcc:int=20, target_sample_rate:int=16000, min_length_samples:int=0, 
                  return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5):
     """
-    We don't need this function for a base extractor, but if you have special parameters to deal with that require you to
+    If you have special parameters to deal with that require you to
     load models or read config files, I recommend using this kind of function to cleanly deal with setting up your extractor
 
+    :param save_path: local path to save extractor configuration information to
+    :param n_mfcc: int, number of mfccs to extract
     :param target_sample_rate: int, target sample rate for model
     :param min_length_samples: int, minimum length a sample can be to be fed into the model
     :param return_numpy: bool, true if returning numpy
@@ -57,7 +63,7 @@ def set_up_mfcc_extractor(target_sample_rate:int=16000, min_length_samples:int=0
     :return: BaseExtractor
     """
     #TODO: Any extractor specific setup
-    return MFCCExtractor(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, return_numpy=return_numpy,
+    return MFCCExtractor(save_path=save_path, n_mfcc=n_mfcc, target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, return_numpy=return_numpy,
                          num_select_frames=num_select_frames, frame_skip=frame_skip)
 
 
@@ -65,6 +71,7 @@ def set_up_mfcc_extractor(target_sample_rate:int=16000, min_length_samples:int=0
 class MFCCExtractor(BaseExtractor):
     """
     MFCC extractor class. 
+    :param save_path: local path to save extractor configuration information to
     :param n_mfcc: int, number of mfccs to extract
     :param target_sample_rate: int, target sample rate for model
     :param min_length_samples: int, minimum length a sample can be to be fed into the model
@@ -74,7 +81,7 @@ class MFCCExtractor(BaseExtractor):
     :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip. 
     """
-    def __init__(self, n_mfcc:int=20, target_sample_rate:int=16000, min_length_samples:int=0, 
+    def __init__(self, save_path:Union[str,Path], n_mfcc:int=20, target_sample_rate:int=16000, min_length_samples:int=0, 
                  return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5):
         #INHERITED VALUES
         super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, 
@@ -84,6 +91,20 @@ class MFCCExtractor(BaseExtractor):
           self.n_mfcc = n_mfcc
         else:
           self.n_mfcc = 20
+
+        # Create a config file and save it to your local directory so you know what parameters you used to extract the features! It will overwrite whatever currently exists
+        # make sure to have all the parameters except for the save_path in here. If you have a model, you can add a model_type parameter to the __init__ call and save it here.
+        self.config = {'feature_type':'mfcc', 'n_mfcc': self.n_mfcc, 'target_sample_rate': self.target_sample_rate, 'min_length_samples':self.min_length_samples,
+                       'return_numpy': self.return_numpy, 'num_select_frames':self.num_select_frames, 'frame_skip': self.frame_skip}
+        
+        #saving things
+        self.save_path = Path(save_path)
+        if not self.save_path.exists(): os.makedirs(str(self.save_path))
+        with open(str(save_path /'hfExtractor_config.json'), 'w') as f:
+            json.dump(self.config,f)
+        
+        self.modules = None # also need to specify what modules exist if you are doing layer selection (SEE _hf_extraction hfExtractor init for example). This is set to none by default in the base extractor. 
+        #I reset it here for an example.
         """
           Big note: for features like mfcc you can completely ignore num_select_frames and frame_skip such that the super function is actually
           super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples,return_numpy=return_numpy)
@@ -91,6 +112,7 @@ class MFCCExtractor(BaseExtractor):
           This is because for MFCC you get a single feature for an entire window whereas for SSL you get a feature per frame, so a .1 second window would output 5 feature representations. 
           I only leave these in as an example for other feature extraction techniques. Talk to me about it if you're not sure whether to skip or not.
         """
+
       
     def __call__(self, sample:dict):
         """
