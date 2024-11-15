@@ -7,6 +7,7 @@ Last Modified: 11/04/2024
 #IMPORTS
 ##built-in
 import collections
+import copy
 import json
 import os
 from pathlib import Path
@@ -166,7 +167,7 @@ class BatchExtractor:
         module_features = collections.defaultdict(list)
 
         for batch_idx, (snippet_starts, snippet_ends) in enumerate(tqdm(snippet_iter)):
-            sample2 = sample
+            sample2 = copy.deepcopy(sample)
             if ((snippet_ends - snippet_starts) < (self.contextsz_samples + self.chunksz_samples)).any() and self.require_full_context:
                 raise ValueError("This shouldn't happen with require_full_context")
 
@@ -228,7 +229,7 @@ class BatchExtractor:
         times = np.concatenate(times, axis=0) if self.return_numpy else torch.cat(times, dim=0) / self.sampling_rate # shape: (timesteps, features)
         #times = np.concatenate(timestorch.cat(times, dim=0) / self.sampling_rate # convert samples --> seconds. shape: (timesteps,)
     
-        sample['final_outputs'] = out_features
+        sample['out_features'] = out_features
         sample['times']= times
         sample['module_features'] = module_features
         

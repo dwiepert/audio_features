@@ -9,6 +9,7 @@ Last modified: 11/14/2024
 import argparse
 import collections
 from pathlib import Path
+import warnings
 
 ##third-party
 import cottoncandy as cc
@@ -17,6 +18,9 @@ import torchaudio
 ##local
 from audio_features.extractors import *
 from audio_preprocessing.io import select_stimuli
+
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

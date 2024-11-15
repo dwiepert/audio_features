@@ -4,3 +4,8 @@
 *.pyc
 *.pyc
 *.pyc
+/audio_features.py.egg-info
+/audio_features/extractors/__pycache__
+/build
+*.pyc
+test.py

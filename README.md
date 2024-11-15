@@ -54,6 +54,7 @@ Mainly, you should always have --require_full_context and --return_numpy toggele
 
 # TRACK CHANGES
 SPARC bug? - kernel size 400 (25ms) while stride is 320 (20ms)? output wasn't right dimensions before Amplitude thing - talk to Alex
+Changed line 369 in generator.py of SPARC to torch.nn.utils.parametrizations.weight_norm(m) bc of utils.weight_norm becoming deprecated
 Ignoring loudness - acoustinc
 Saving happens within a class (since different things might output different features/results of different sizes but take in the same input)
 Loading happens as a separate function in the .py script outside of any class (since it is the same regardless of class for each individual script)

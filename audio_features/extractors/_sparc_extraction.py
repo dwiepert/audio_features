@@ -153,16 +153,15 @@ class SPARCExtractor(BaseExtractor):
                 if temp.shape[-1] != c['ema'].shape[-1]: c['pitch'] = temp[:-1] #TODO: unsure about this
                 ema = np.append(ema, c['pitch'][output_offset,:])
                 ema = np.expand_dims(ema, axis=0) if self.return_numpy else torch.unsqueeze(torch.from_numpy(ema),0)
-                out_features.append(ema)           
-                
+                out_features.append(ema)                       
         
-        out_features = np.concatenate(out_features, axis=0) if self.return_numpy else torch.cat(out_features, dim=0) # shape: (timesteps, features)
+        features = np.concatenate(out_features, axis=0) if self.return_numpy else torch.cat(out_features, dim=0) # shape: (timesteps, features)
         times = torch.cat(times, dim=0) / self.target_sample_rate # convert samples --> seconds. shape: (timesteps,)
         if self.return_numpy: times = times.numpy()
 
         del chunk_features # TODO: trying to fix memory leak. remove if unneeded
            
-        sample['out_features'] = out_features
+        sample['out_features'] = features
         sample['times'] = times
         return sample
             
