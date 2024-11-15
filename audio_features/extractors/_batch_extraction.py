@@ -245,5 +245,6 @@ class BatchExtractor:
 
         self._save(sample, fname)
 
-        return sample
+        del sample #sth weird w memory
+        return
     
