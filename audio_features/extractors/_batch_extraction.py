@@ -228,6 +228,8 @@ class BatchExtractor:
                         module_features[k] = temp1 
                     else:
                         module_features[k] = [output['module_features'][k]]
+            del sample2 
+            del output
 
         if not self.return_numpy and isinstance(out_features, np.ndarray):
             out_features = torch.from_numpy(out_features)

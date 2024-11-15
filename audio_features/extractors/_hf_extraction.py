@@ -75,7 +75,6 @@ def set_up_hf_extractor(model_name:str, save_path:Union[str, Path], use_featext:
     print('Loading model', model_name, 'from the Hugging Face Hub...')
     model = AutoModel.from_pretrained(model_hf_path, output_hidden_states=True, trust_remote_code=True)
     if use_cuda:
-        torch.cuda.empty_cache()
         model = model.cuda()
 
    

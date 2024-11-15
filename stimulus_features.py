@@ -14,6 +14,7 @@ import warnings
 ##third-party
 import cottoncandy as cc
 import torchaudio
+import torch
 
 ##local
 from audio_features.extractors import *
@@ -89,6 +90,8 @@ if __name__ == "__main__":
                            help="Specify number of mfccs to extract. If none given, defaults to 20")
 
     args = parser.parse_args()
+
+    if torch.cuda.is_available(): torch.cuda.empty_cache()
 
     # STEP 1: some initial variable things
     args.stimulus_dir = Path(args.stimulus_dir)
