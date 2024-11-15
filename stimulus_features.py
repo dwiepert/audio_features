@@ -78,7 +78,7 @@ if __name__ == "__main__":
                         help="Specify a path to a json with model information if required. For hugging face, use: audio_features/configs/hf_model_configs.json")
     model_args.add_argument('--use_featext', action='store_true',
                         help="Specify whether to use a pretrained feature extractor (Hugging face specific)")
-    model_args.add_argument('--layers', nargs='+', type=int,
+    model_args.add_argument('--layers', nargs='+', type=int, default = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
                         help="Only save the features from these layers. Usually doesn't speed up execution "
                         "time, but may speed up upload time and reduce total disk usage. "
                         "NOTE: only works with numbered layers (currently).")

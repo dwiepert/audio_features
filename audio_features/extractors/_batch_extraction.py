@@ -105,7 +105,7 @@ class BatchExtractor:
                     n = self.save_path/self.modules[m]
                     os.makedirs(n, exist_ok=True)
                     self.result_paths['modules'][f] = {self.modules[m]:n/f}
-            print(self.result_paths['modules'])
+            #print(self.result_paths['modules'])
     
     def _save(self, sample:dict, fname:str):
         """
@@ -127,14 +127,17 @@ class BatchExtractor:
 
         
         if sample['module_features'] is not None:
-            m = self.result_paths['modules']
-            if fname not in m:
-                new_name = self.save_path / fname
-                for m in self.modules:
-                    n = self.save_path/m
-                    self.result_paths['modules'][fname] = {m:n/fname}
-                
-            module_path = self.result_paths['modules'][fname]
+            if sample['module_features'] is not {}:
+                m = self.result_paths['modules']
+                if fname not in m:
+                    new_name = self.save_path / fname
+                    for m in self.modules:
+                        n = self.save_path/m
+                        self.result_paths['modules'][fname] = {m:n/fname}
+                    
+                module_path = self.result_paths['modules'][fname]
+            else:
+                module_path = None
         else:
             module_path=None
         
