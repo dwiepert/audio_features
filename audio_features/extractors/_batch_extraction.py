@@ -105,6 +105,7 @@ class BatchExtractor:
                     n = self.save_path/self.modules[m]
                     os.makedirs(n, exist_ok=True)
                     self.result_paths['modules'][f] = {self.modules[m]:n/f}
+            print(self.result_paths['modules'])
     
     def _save(self, sample:dict, fname:str):
         """

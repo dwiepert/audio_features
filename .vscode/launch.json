@@ -28,7 +28,7 @@
                 "sparc",
                 "--full_context",
                 "--batchsz",
-                "1",
+                "5",
                 "--return_numpy"
             ]
         },
