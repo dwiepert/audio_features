@@ -54,7 +54,8 @@
                 "/Users/dwiepert/Documents/GitHub/audio_features/audio_features/configs/hf_model_configs.json",
                 "--overwrite",
                 "--layers",
-                "9"
+                "9",
+                "10"
             ]
         },
         {
