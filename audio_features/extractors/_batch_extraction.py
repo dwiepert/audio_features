@@ -102,6 +102,8 @@ class BatchExtractor:
 
             if self.modules is not None:
                 for m in self.modules:
+                    print(m)
+                    print(self.modules[m])
                     n = self.save_path/self.modules[m]
                     os.makedirs(n, exist_ok=True)
                     self.result_paths['modules'][f] = {self.modules[m]:n/f}
