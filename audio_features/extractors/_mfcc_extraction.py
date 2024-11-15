@@ -99,8 +99,8 @@ class MFCCExtractor(BaseExtractor):
         
         #saving things
         self.save_path = Path(save_path)
-        if not self.save_path.exists(): os.makedirs(str(self.save_path))
-        with open(str(save_path /'hfExtractor_config.json'), 'w') as f:
+        os.makedirs(self.save_path, exist_ok=True)
+        with open(str(save_path /'MFCCExtractor_config.json'), 'w') as f:
             json.dump(self.config,f)
         
         self.modules = None # also need to specify what modules exist if you are doing layer selection (SEE _hf_extraction hfExtractor init for example). This is set to none by default in the base extractor. 

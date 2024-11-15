@@ -9,49 +9,47 @@ Last modified: 11/09/2024
 import argparse
 import collections
 from pathlib import Path
-from typing import Union
 
 #third-party
 import cottoncandy as cc
 import numpy as np
 
 #local
-from audio_features.io import load_features
-from audio_features.functions import bootstrap_ridge
+from audio_features.io import load_features, split_features
+from audio_features.functions import LSTSQRegression
 from audio_preprocessing.io import select_stimuli
 
-def split_features(features:dict, stimulus_names:list, parent_dir:Union[str,Path]):
-    new_features = {}
-    feature_paths = features['path_list']
 
-    for s in stimulus_names:
-        s_dict = {}
-        module_dict = {}
-        for f in feature_paths:
-            f = f
-            if s in str(f):
-                if 'times' in str(f):
-                    s_dict['times'] = features[f]
-                elif str(f.parent) != str(parent_dir):
-                    module = f.parent.name
-                    module_dict[module] = features[f]
-                else:
-                    s_dict['out_features'] = features[f]
-        s_dict['module_features'] = module_dict
-        new_features[s] = s_dict
-    
-    return new_features
+def process_ema(ema_feats:dict):
+    """
+    """
+    mask = np.ones(14, dtype=bool)
+    mask[[12]] = False
+    for f in ema_feats:
+        temp = ema_feats[f]
+        temp = temp[:,mask]
+        ema_feats[f] = temp
+
+    return ema_feats
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     #Common arguments
-    parser.add_argument('--reference_dir', type=str, required=True,
-                        help='')
-    parser.add_argument('--module', type=str, default="layer.9")
-    parser.add_argument('--predict_dir', type=str, required=True,
-                        help='')
+    parser.add_argument('--feat_dir1', type=str, required=True,
+                        help='Specify the path to the first set of features (Always assumes this will be the features to use for the first feature argument in a function)')
+    parser.add_argument('--feat1_type', type=str, required=True,
+                        help='Specify the type of feature you are using for first argument')
+    parser.add_argument('--feat_dir2', type=str, required=True,
+                        help='Specify the path to the second set of features (Always assumes this will be the features to use for the second feature argument in a function)')
+    parser.add_argument('--feat2_type', type=str, required=True,
+                        help='Specify the type of feature you are using for second argument')
+    parser.add_argument('--out_dir', type=str, required=True,
+                        help="Specify a local directory to save configuration files to. If not saving features to corral, this also specifies local directory to save files to.")
     parser.add_argument("--recursive", action="store_true", help='Recursively find .wav,.flac,.npz files in the feature and stimulus dirs')
-    parser.add_argument("--function", require=True, help="specify what function to use.")
+    parser.add_argument("--function", required=True,type=str, help="specify what function to use as a string")
+    parser.add_argument('--overwrite', action='store_true',
+                        help='Overwrite existing features (default behavior is to skip)')
     #cotton candy related args
     cc_args = parser.add_argument_group('cc', 'cottoncandy related arguments (loading/saving to corral)')
     cc_args.add_argument('--stimulus_dir', type=str, required=True,
@@ -66,13 +64,15 @@ if __name__ == "__main__":
     cc_args.add_argument('--stories', '--stimuli', nargs='+', type=str,
                                    help="Only process the given stories."
                                    "Overrides --sessions and --subjects.")
-    cc_args.add_argument('--recursive', action='store_true',
-                                   help='Recursively find .wav and .flac in the stimulus_dir.')
-    # TODO: str --> pathlib.Path
-    cc_args.add_argument('--overwrite', action='store_true',
-                                   help='Overwrite existing features (default behavior is to skip)')
+    #LSTSQ Regression specific
+    lstsq_args = parser.add_argument_group('lstsq', 'lstsq related argument')
+    lstsq_args.add_argument("--zscore", action="store_true",
+                            help="specify if you want to zscore before running regression.")
+
     args = parser.parse_args()
     
+    args.out_dir = Path(args.out_dir)
+
     if (args.out_bucket is not None) and (args.out_bucket != ''):
         cci_features = cc.get_interface(args.out_bucket, verbose=False)
         print("Loading features from bucket", cci_features.bucket_name)
@@ -87,39 +87,37 @@ if __name__ == "__main__":
     stimulus_paths = collections.OrderedDict(sorted(stimulus_paths.items(), key=lambda x: x[0]))
     stimulus_names = list(stimulus_paths.keys())
     
-    #TODO: how to load from bucket?
-    if args.recursive:
-        stim_feats = sorted(list(args.reference_dir.rglob('*.npz')))
-        resp_feats = sorted(list(args.predict_dir.rglob('*.npz')))
-    else:
-        stim_feats = sorted(list(args.reference_dir.glob('*.npz')))
-        resp_feats = sorted(list(args.predict_dir.glob('*.npz')))
+    feats1 = load_features(args.feat_dir1, cci_features, args.recursive)
+    feats2 = load_features(args.feat_dir2, cci_features, args.recursive)
+    feats1 = split_features(feats1)
+    if args.feat1_type == 'ema':
+        feats1 = process_ema(feats1)
+    feats2 = split_features(feats2)
+    if args.feat2_type == 'ema':
+        feats2 = process_ema(feats2)
 
-    args.reference_dir = Path(args.reference_dir)
-    args.predict_dir = Path(args.predict_dir)
-
-    stim_feats = load_features(stim_feats, cci_features)
-    stim_feats = split_features(stim_feats, stimulus_names, args.reference_dir)
-    resp_feats = load_features(resp_feats, cci_features)
-    resp_feats = split_features(resp_feats, stimulus_names, args.predict_dir)
-
-    for s in stimulus_names:
-        Rstim = stim_feats[s]
-        Rresp = resp_feats[s]
-
-        if args.function == "ridge":
-            alphas = None
-            nboots=None
-            chunklen=None
-            nchunks=None
-            singcutoff=None
-            single_alpha=None
-            use_corr=None
-            wt, r = bootstrap_ridge(Rstim=Rstim, Rresp=Rresp, alphas=alphas, nboots=nboots,
-                                    chunklen=chunklen, nchunks=nchunks, singcutoff=singcutoff, single_alpha=single_alpha,
-                                    use_corr=use_corr, solver_dtype=np.float32)
+    if args.function == 'lstsq':
+        save_path = Path(f'LSTSQRegression_{args.feat1_type}_to_{args.feat2_type}')
+        if args.zscore:
+            save_path = save_path / 'zscored'
+        
+        if cci_features is None:
+            save_path = args.out_dir / save_path
+            local_path = None
         else:
-            raise NotImplementedError(f"{args.function} not implemented.")
+            local_path = args.out_dir / save_path
+            
+        print('Saving regression results to:', save_path)
+
+        regressor = LSTSQRegression(iv=feats1, iv_type=args.feat1_type, dv=feats2, dv_type=args.feat2_type,
+                                    save_path=args.out_dir, zscore=args.zscore, cci_features=cci_features, overwrite=args.overwrite,
+                                    local_path=local_path)
+        
+        regressor.run_regression()
+        for s in stimulus_names:
+            regressor.extract_residuals(feats2[s], s)
+
+    
         
     
 

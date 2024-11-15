@@ -24,7 +24,7 @@ if __name__ == "__main__":
     parser.add_argument('--stimulus_dir', type=str, required=True,
                         help='Specify a local directory with the audio stimulus you want to extract features from. Audio should be already processed.')
     parser.add_argument('--out_dir', type=str, required=True,
-                        help="Specify a local directory to save the features to.")
+                        help="Specify a local directory to save configuration files to. If not saving features to corral, this also specifies local directory to save files to.")
     parser.add_argument('--feature_type', type=str, default="hf",
                         help="Specify what feature type to extract")
     parser.add_argument('--return_numpy', action='store_true',
@@ -49,6 +49,8 @@ if __name__ == "__main__":
                         help='This goes with num_select_frames. For most HF models the window is 20ms, so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip')
     parser.add_argument('--target_sample_rate', type=int, default=16000, 
                         help='Most models use a target sample rate of 16000.')
+    parser.add_argument('--overwrite', action='store_true',
+                                   help='Overwrite existing features (default behavior is to skip)')
     #Cotton candy related args (stimulus selection + save to bucket)
     #Cotton candy related args (stimulus selection + save to bucket)
     cc_args = parser.add_argument_group('cc', 'cottoncandy related arguments (loading/saving to corral)')
@@ -64,10 +66,6 @@ if __name__ == "__main__":
                                    "Overrides --sessions and --subjects.")
     cc_args.add_argument('--recursive', action='store_true',
                                    help='Recursively find .wav and .flac in the stimulus_dir.')
-    # TODO: str --> pathlib.Path
-    cc_args.add_argument('--overwrite', action='store_true',
-                                   help='Overwrite existing features (default behavior is to skip)')
-
     #Model loading related arguments (hugging face/SPARC)
     model_args = parser.add_argument_group('models', 'Args for loading models')
     model_args.add_argument('--model_name', type=str,
@@ -114,13 +112,19 @@ if __name__ == "__main__":
 
     #set save path name
     model_save_path = Path(f"features_cnk{chunksz_sec:0.1f}_ctx{contextsz_sec:0.1f}_pick{args.num_select_frames}_skip{args.frame_skip}/{args.feature_type}")
-    model_save_path = args.out_dir / model_save_path
     if args.model_name:
         model_save_path = model_save_path / args.model_name
     if args.stride:
         # If using a custom stride length (e.g. for snippets), store in a
         # separate directory.
         model_save_path = model_save_path / f"stride_{args.stride}"
+    
+    if cci_features is None:
+        model_save_path = args.out_dir / model_save_path
+        local_path = None
+    else:
+        local_path = args.out_dir / model_save_path
+        
     print('Saving features to:', model_save_path)
     
     # STEP 2: STIMULUS SELECTION
@@ -141,7 +145,7 @@ if __name__ == "__main__":
         raise NotImplementedError(f'{args.feature_type} not supported.')
     
     # STEP 4: Set up batch extrator object
-    batching = BatchExtractor(extractor=extractor, save_path=model_save_path, fnames=list(stimulus_paths.keys()), overwrite=args.overwrite, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence)
+    batching = BatchExtractor(extractor=extractor, save_path=model_save_path, fnames=list(stimulus_paths.keys()), overwrite=args.overwrite, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence, local_path=local_path)
     
     # STEP 5: RUN BATCHING FOR EACH STIMULUS
    

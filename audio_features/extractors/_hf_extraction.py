@@ -160,7 +160,7 @@ class hfExtractor(BaseExtractor):
         
         #saving things
         self.save_path = Path(save_path)
-        if not self.save_path.exists(): os.makedirs(str(self.save_path))
+        os.makedirs(self.save_path, exist_ok=True)
         with open(str(save_path /'hfExtractor_config.json'), 'w') as f:
             json.dump(self.config, f)
 

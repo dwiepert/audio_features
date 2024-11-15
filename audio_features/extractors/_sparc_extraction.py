@@ -84,7 +84,7 @@ class SPARCExtractor(BaseExtractor):
         
         #saving things
         self.save_path = Path(save_path)
-        if not self.save_path.exists(): os.makedirs(str(self.save_path))
+        os.makedirs(self.save_path, exist_ok=True)
         with open(str(save_path /'SPARCExtractor_config.json'), 'w') as f:
             json.dump(self.config, f)
 
@@ -148,7 +148,7 @@ class SPARCExtractor(BaseExtractor):
                 #get 'ema' features
                 ema = c['ema'][output_offset,:]
                 #print('Currently loudness and pitch do NOT output at the same frame rate - need to explore SPARC more for that bug...')
-                ema = np.append(ema, c['loudness'][output_offset,:])
+                ema = np.append(ema, c['loudness'][output_offset,:]) 
                 temp = c['pitch']
                 if temp.shape[-1] != c['ema'].shape[-1]: c['pitch'] = temp[:-1] #TODO: unsure about this
                 ema = np.append(ema, c['pitch'][output_offset,:])

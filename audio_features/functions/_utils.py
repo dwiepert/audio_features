@@ -1,3 +1,13 @@
+"""
+Some util functions for internal use
+
+Author(s): Aditya Vaidya
+Last Modified: Unknown
+"""
+#IMPORTS
+##third-party
+import numpy as np
+
 def _zscore(mat, return_unzvals=False):
     """Z-scores the rows of [mat] by subtracting off the mean and dividing
     by the standard deviation.

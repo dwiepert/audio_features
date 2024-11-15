@@ -39,14 +39,14 @@ class BatchExtractor:
     :param min_length_samples: float, minimum length of samples in seconds
     :param return_numpy: bool, true if returning numpy
     :param pad_silence: bool, true if padding silence
+    :param local_path: str/Path, local directory to save config file to if using self.cci_features. 
     """
     def __init__(self, extractor, save_path:Union[str, Path],  cci_features=None, fnames:List=[], overwrite:bool=False,
                  batchsz:int=1, chunksz:float=0.1, contextsz:float=8., require_full_context:bool=True, 
-                 min_length_samples:float=0, return_numpy:bool=True, pad_silence:bool=False):
+                 min_length_samples:float=0, return_numpy:bool=True, pad_silence:bool=False, local_path:Union[str,Path] = None):
         self.extractor = extractor
         self.cci_features=cci_features 
         self.save_path=Path(save_path)
-        if not self.save_path.exists(): os.makedirs(str(self.save_path))
         self.fnames=fnames
         self.overwrite = overwrite
         self.batchsz = batchsz
@@ -72,12 +72,21 @@ class BatchExtractor:
                        'require_full_context':self.require_full_context, 'min_length_samples': self.min_length_samples, 'pad_silence':self.pad_silence,
                        'return_numpy': self.return_numpy}
         
-        with open(str(save_path /'BatchExtractor_config.json'), 'w') as f:
+        self.local_path = local_path
+        if self.local_path is None or self.cci_features is None:
+            self.local_path = self.save_path
+            os.makedirs(self.local_path, exist_ok=True)
+        else:
+            self.local_path = Path(self.local_path)
+        with open(str(self.local_path /'BatchExtractor_config.json'), 'w') as f:
             json.dump(self.config,f)
         
         self._get_result_paths()
 
     def _get_result_paths(self):
+        """
+        Set up result paths
+        """
         self.result_paths = {}
         self.result_paths['features'] = {}
         self.result_paths['times'] = {}
@@ -93,10 +102,17 @@ class BatchExtractor:
             if self.modules is not None:
                 for m in self.modules:
                     n = self.save_path/self.modules[m]
-                    if not n.exists(): os.makedirs(n)
+                    os.makedirs(n, exist_ok=True)
                     self.result_paths['modules'][f] = {self.modules[m]:n/f}
     
-    def _save(self, sample, fname):
+    def _save(self, sample:dict, fname:str):
+        """
+        Save features
+
+        :param sample: sample dict with features
+        :param fname: str, stimulus name
+        :return: None, saving features
+        """
         feats = self.result_paths['features']
         if fname not in feats:
             new_name = self.save_path / fname
