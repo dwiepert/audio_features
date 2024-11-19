@@ -83,6 +83,8 @@ if __name__ == "__main__":
                         help="Only save the features from these layers. Usually doesn't speed up execution "
                         "time, but may speed up upload time and reduce total disk usage. "
                         "NOTE: only works with numbered layers (currently).")
+    model_args.add_argument('--keep_all', action='store_true',
+                                   help='keep all features rather than following frame_skip, num_select parameters')
 
     #mfcc args
     mfcc_args = parser.add_argument_group('mfcc', 'args for mfcc extraction')
@@ -143,9 +145,9 @@ if __name__ == "__main__":
     
     # STEP 3: TODO: FEATURE EXTRACTION TYPES
     if 'hf' in args.feature_type: #there are multiple hugging face features, so only check that hf is in the type
-        extractor = set_up_hf_extractor(model_name=args.model_name, save_path=model_save_path, use_featext=args.use_featext, sel_layers=args.layers, target_sample_rate=args.target_sample_rate, model_config_path=args.model_config_path, return_numpy=args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
+        extractor = set_up_hf_extractor(model_name=args.model_name, save_path=model_save_path, use_featext=args.use_featext, sel_layers=args.layers, target_sample_rate=args.target_sample_rate, model_config_path=args.model_config_path, return_numpy=args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip, keep_all=args.keep_all)
     elif args.feature_type=='sparc':
-        extractor = set_up_sparc_extractor(model_name=args.model_name, save_path=model_save_path, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples)
+        extractor = set_up_sparc_extractor(model_name=args.model_name, save_path=model_save_path, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, keep_all=args.keep_all)
     elif 'mfcc' in args.feature_type:
         extractor = set_up_mfcc_extractor(save_path=model_save_path, n_mfcc=args.n_mfcc, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
     else:

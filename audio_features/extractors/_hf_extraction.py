@@ -25,7 +25,7 @@ from ._base_extraction import BaseExtractor
 
 def set_up_hf_extractor(model_name:str, save_path:Union[str, Path], use_featext:bool, sel_layers: Optional[List[int]],
                         target_sample_rate:int=16000, model_config_path:Union[str,Path]='audio_features/configs/hf_model_configs.json', 
-                        return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5):
+                        return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5, keep_all:bool=False):
     """
     Function for setting up an hf feature extractor (loading model in, setting seeds, freezing extractor, etc.)
 
@@ -40,6 +40,7 @@ def set_up_hf_extractor(model_name:str, save_path:Union[str, Path], use_featext:
                               This specifies how many frames to select features from. 
     :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
+    :param keep_all: bool, true if you want to keep all outputs from each batch
     :return: initialized extractor
     """
     assert model_name is not None, 'Must give model name for hugging face models'
@@ -106,7 +107,7 @@ def set_up_hf_extractor(model_name:str, save_path:Union[str, Path], use_featext:
 
     return hfExtractor(model=model, model_type=model_name, save_path=save_path, feature_extractor=feature_extractor, target_sample_rate=target_sample_rate, 
                        min_length_samples=min_length_samples, sel_layers=sel_layers, return_numpy=return_numpy,
-                       num_select_frames=num_select_frames,frame_skip=frame_skip, frame_len_sec=frame_len_sec)
+                       num_select_frames=num_select_frames,frame_skip=frame_skip, frame_len_sec=frame_len_sec, keep_all=keep_all)
     
 class hfExtractor(BaseExtractor):
     """
@@ -125,10 +126,11 @@ class hfExtractor(BaseExtractor):
     :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
     :param frame_len_sec: int, information on how long a frame is in the model in seconds
+    :param keep_all: bool, true if you want to keep all outputs from each batch
     """
     def __init__(self, model: PreTrainedModel, model_type:str, save_path:Union[str,Path], target_sample_rate:int=16000, min_length_samples:int=0,
                  feature_extractor=None, sel_layers: Optional[List[int]]=None, return_numpy:bool=True,
-                 num_select_frames:int=1, frame_skip:int=5, frame_len_sec:float=None):
+                 num_select_frames:int=1, frame_skip:int=5, frame_len_sec:float=None, keep_all:bool=False):
         
         #INHERITED VALUES
         super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, 
@@ -145,6 +147,7 @@ class hfExtractor(BaseExtractor):
         self.feature_extractor = feature_extractor # model specific feature extractor
         
         self.frame_len_sec = frame_len_sec #unnecessary variable, useful for understanding the model you are extracting from 
+        self.keep_all=keep_all
 
         self.move_to_cpu = False #for hugging face, if you want to return numpy you need to move it to the cpu
         if self.return_numpy:
@@ -157,7 +160,7 @@ class hfExtractor(BaseExtractor):
         
         self.config = {'feature_type':'hf', 'model_type': self.model_type, 'target_sample_rate': self.target_sample_rate, 'min_length_samples':self.min_length_samples,
                        'sel_layers': self.sel_layers, 'return_numpy': self.return_numpy, 'num_select_frames':self.num_select_frames, 'frame_skip': self.frame_skip,
-                       'frame_len_sec': self.frame_len_sec}
+                       'frame_len_sec': self.frame_len_sec, 'keep_all': self.keep_all}
         
         #saving things
         self.save_path = Path(save_path)
@@ -276,7 +279,12 @@ class hfExtractor(BaseExtractor):
         if self.is_whisper_model:
             self.output_inds = [final_output]
         
-        for out_idx, output_offset in enumerate(self.output_inds):
+        if self.keep_all: 
+            output_inds = list(range(chunk_features['last_hidden_state'].shape[1]))
+        else: 
+            output_inds = self.output_inds
+
+        for out_idx, output_offset in enumerate(output_inds):
             # TODO: avoid re-stacking the times. may require tracking snippet
             # idxs and indexing into `snippet_times`
             times.append(torch.stack([snippet_starts, snippet_ends], dim=1))

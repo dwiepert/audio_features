@@ -9,7 +9,6 @@ Last modified: 11/13/2024
 import itertools as itools
 import json
 import logging
-import multiprocessing
 import random 
 import socket
 from pathlib import Path
@@ -21,10 +20,6 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-
-if not socket.gethostname().startswith('login'):
-    # Don't multithread on login nodes (stalls session b/c too many threads)
-    torch.set_num_threads(multiprocessing.cpu_count())
 
 
 def _zscore(mat, return_unzvals=False):

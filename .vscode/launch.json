@@ -28,8 +28,9 @@
                 "sparc",
                 "--full_context",
                 "--batchsz",
-                "5",
-                "--return_numpy"
+                "1",
+                "--return_numpy",
+                "--overwrite"
             ]
         },
         {

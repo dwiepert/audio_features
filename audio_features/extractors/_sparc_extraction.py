@@ -21,7 +21,7 @@ from ._base_extraction import BaseExtractor
 from sparc import load_model, SPARC, SpeechWave
 
 def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", config:Union[str,Path]=None, ckpt:str=None, use_penn:bool=False,
-                           target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None):
+                           target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None, keep_all:bool=False):
     """
     Set up sparc extractor
     :param save_path: local path to save extractor configuration information to
@@ -33,6 +33,7 @@ def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", conf
     :param target_sample_rate: int, target sample rate for model
     :param min_length_samples: int, minimum length a sample can be to be fed into the model
     :param return_numpy: bool, true if returning numpy
+    :param keep_all: bool, true if you want to keep all outputs from each batch
     :return: initialized SPARCExtractor
     """
     assert model_name, 'Must give model name for sparc models'
@@ -46,7 +47,7 @@ def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", conf
     model = load_model(model_name=model_name, config=config, ckpt=ckpt, device=device, use_penn=use_penn)
     #TODO: figure out frame_length_sec
 
-    return SPARCExtractor(model=model, model_type=model_name, save_path=save_path, target_sample_rate=target_sample_rate, return_numpy=return_numpy, min_length_samples=min_length_samples)
+    return SPARCExtractor(model=model, model_type=model_name, save_path=save_path, target_sample_rate=target_sample_rate, return_numpy=return_numpy, min_length_samples=min_length_samples,keep_all=keep_all)
 
 
 class SPARCExtractor(BaseExtractor):
@@ -64,15 +65,17 @@ class SPARCExtractor(BaseExtractor):
     :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
     :param frame_len_sec: int, information on how long a frame is in the model in seconds
+    :param keep_all: bool, true if you want to keep all outputs from each batch
     """
     def __init__(self, model:SPARC, model_type:str,  save_path: Union[str, Path], target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None,
-                 num_select_frames:int=1, frame_skip:int=5, frame_length_sec:float=None):
+                 num_select_frames:int=1, frame_skip:int=5, frame_length_sec:float=None, keep_all:bool=False):
         
         super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples,
                          return_numpy=return_numpy, num_select_frames=num_select_frames, frame_skip=frame_skip)
         self.model = model
         self.model_type = model_type
         self.frame_length_sec = frame_length_sec
+        self.keep_all = keep_all #THIS IS FOR FEATURES THAT OUTPUT MORE THAN ONE FEATURE PER BATCH
     
         #self.output_inds = np.array([-1 - self.frame_skip*i for i in reversed(range(self.num_select_frames))])
         #TODO: figure out output inds for SPARC
@@ -80,7 +83,7 @@ class SPARCExtractor(BaseExtractor):
             "supported  (because they don't provide the downsampling rate)"
         
         self.config = {'feature_type': 'sparc', 'model_type': self.model_type, 'target_sample_rate': self.target_sample_rate, 'min_length_samples':self.min_length_samples,
-                       'return_numpy': self.return_numpy, 'num_select_frames':self.num_select_frames, 'frame_skip': self.frame_skip}
+                       'return_numpy': self.return_numpy, 'num_select_frames':self.num_select_frames, 'frame_skip': self.frame_skip, 'keep_all':self.keep_all}
         
         #saving things
         self.save_path = Path(save_path)
@@ -138,7 +141,12 @@ class SPARCExtractor(BaseExtractor):
         #sample['waveform'].squeeze_().numpy()]
         chunk_features = self.model.encode(input)
 
-        for out_idx, output_offset in enumerate(self.output_inds):
+        if self.keep_all: 
+            output_inds = list(range(chunk_features['ema'].shape[0])) 
+        else: 
+            output_inds = self.output_inds
+
+        for out_idx, output_offset in enumerate(output_inds):
             # TODO: avoid re-stacking the times. may require tracking snippet
             # idxs and indexing into `snippet_times`
             times.append(torch.stack([snippet_starts, snippet_ends], dim=1))
@@ -150,7 +158,10 @@ class SPARCExtractor(BaseExtractor):
                 #print('Currently loudness and pitch do NOT output at the same frame rate - need to explore SPARC more for that bug...')
                 ema = np.append(ema, c['loudness'][output_offset,:]) 
                 temp = c['pitch']
-                if temp.shape[-1] != c['ema'].shape[-1]: c['pitch'] = temp[:-1] #TODO: unsure about this
+                if temp.shape[0] != c['ema'].shape[0]: 
+                    difference = abs(temp.shape[0] - c['ema'].shape[0])*-1
+                    c['pitch'] = temp[:difference,:] #TODO: unsure about this
+                    #print(f'Prev shape: {temp.shape[0]}, Curr shape: {temp[:-1,:].shape[0]}')
                 ema = np.append(ema, c['pitch'][output_offset,:])
                 ema = np.expand_dims(ema, axis=0) if self.return_numpy else torch.unsqueeze(torch.from_numpy(ema),0)
                 out_features.append(ema)                       
