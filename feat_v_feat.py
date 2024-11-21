@@ -136,7 +136,7 @@ if __name__ == "__main__":
         print('Saving regression results to:', save_path)
 
         regressor = LSTSQRegression(iv=aligned_feats1, iv_type=args.feat1_type, dv=aligned_feats2, dv_type=args.feat2_type,
-                                    save_path=args.out_dir, zscore=args.zscore, cci_features=cci_features, overwrite=args.overwrite,
+                                    save_path=save_path, zscore=args.zscore, cci_features=cci_features, overwrite=args.overwrite,
                                     local_path=local_path)
         
         regressor.run_regression()

@@ -151,11 +151,11 @@
             "console": "integratedTerminal",
             "args": [
                 "--feat_dir1",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features_cnk0.1_ctx8.0_pick1_skip5/sparc/en/",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/sparc/en/",
                 "--feat_dir2",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
                 "--feat2_times",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/",
                 "--feat1_type",
                 "ema",
                 "--feat2_type",
@@ -172,7 +172,6 @@
                 "3",
                 "4",
                 "5",
-                "--overwrite",
                 "--zscore"
                 
             ]
