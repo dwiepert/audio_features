@@ -4,7 +4,7 @@ from typing import Union
 
 import numpy as np
 
-def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool=False, ignore_str:str='_times', search_str:str=None):
+def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool=False, ignore_str:str=None,search_str:str=None):
     """
     Load features
 
@@ -27,6 +27,7 @@ def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool
         paths = [f for f in paths if ignore_str not in str(f)] #don't load times files
     if search_str is not None:
         paths = [f for f in paths if search_str in str(f)]
+
     features = {}
     for f in paths:
         if cci_features is not None:

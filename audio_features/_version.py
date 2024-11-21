@@ -1,4 +1,4 @@
-__version__ = '0.2.1'
+__version__ = '0.3.0'
 
 #change log:
 # 0.0.0: first version
@@ -6,3 +6,4 @@ __version__ = '0.2.1'
 # 0.1.1: saving changed for feature extraction
 # 0.2.0: first path of orthogonal feature extraction
 # 0.2.1: feature saving bug
+# 0.3.0: additional feature extraction options

@@ -30,7 +30,8 @@
                 "--batchsz",
                 "1",
                 "--return_numpy",
-                "--overwrite"
+                "--overwrite",
+                "--keep_all"
             ]
         },
         {
@@ -59,6 +60,72 @@
                 "10"
             ]
         },
+
+        {
+            "name": "Python Debugger: fbank",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--stimulus_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli/features",
+                "--feature_type",
+                "fbank",
+                "--full_context",
+                "--batchsz",
+                "1",
+                "--return_numpy",
+                "--overwrite"
+            ]
+        },
+        {
+            "name": "Python Debugger: opensmile - default",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--stimulus_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli/features",
+                "--feature_type",
+                "opensmile",
+                "--feature_set=ComParE_2016",
+                "--feature_level=lld",
+                "--default_extractor",
+                "--full_context",
+                "--batchsz",
+                "1",
+                "--return_numpy",
+                "--overwrite"
+            ]
+        },
+        {
+            "name": "Python Debugger: opensmile - custom",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--stimulus_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/custom_stimuli/features",
+                "--feature_type",
+                "opensmile",
+                "--feature_set=ComParE_2016",
+                "--feature_level=lld",
+                "--full_context",
+                "--batchsz",
+                "1",
+                "--return_numpy",
+                "--overwrite"
+            ]
+        },
         {
             "name": "Python Debugger: test base",
             "type": "debugpy",
@@ -84,9 +151,11 @@
             "console": "integratedTerminal",
             "args": [
                 "--feat_dir1",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/sparc/en",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features_cnk0.1_ctx8.0_pick1_skip5/sparc/en/",
                 "--feat_dir2",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
+                "--feat2_times",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/",
                 "--feat1_type",
                 "ema",
                 "--feat2_type",
@@ -94,7 +163,7 @@
                 "--function",
                 "lstsq",
                 "--out_dir",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/v",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/lstsq_residuals",
                  "--stimulus_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
                 "--session",
@@ -103,6 +172,8 @@
                 "3",
                 "4",
                 "5",
+                "--overwrite",
+                "--zscore"
                 
             ]
         },

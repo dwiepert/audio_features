@@ -13,6 +13,7 @@ from pathlib import Path
 #third-party
 import cottoncandy as cc
 import numpy as np
+from tqdm import tqdm
 
 #local
 from audio_features.io import load_features, split_features
@@ -32,6 +33,16 @@ def process_ema(ema_feats:dict):
 
     return ema_feats
 
+def align_times(feats, times):
+    features = {}
+    for s in list(feats.keys()):
+        f = feats[s]
+        t = times[s]
+        sort_i = np.argsort(t, axis=0)[:,0]
+        f = f[sort_i,:]
+        t = t[sort_i,:]
+        features[s] = {'features': f, 'times': t}
+    return features
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -40,10 +51,12 @@ if __name__ == "__main__":
                         help='Specify the path to the first set of features (Always assumes this will be the features to use for the first feature argument in a function)')
     parser.add_argument('--feat1_type', type=str, required=True,
                         help='Specify the type of feature you are using for first argument')
+    parser.add_argument('--feat1_times', type=str, default=None)
     parser.add_argument('--feat_dir2', type=str, required=True,
                         help='Specify the path to the second set of features (Always assumes this will be the features to use for the second feature argument in a function)')
     parser.add_argument('--feat2_type', type=str, required=True,
                         help='Specify the type of feature you are using for second argument')
+    parser.add_argument('--feat2_times', type=str, default=None)
     parser.add_argument('--out_dir', type=str, required=True,
                         help="Specify a local directory to save configuration files to. If not saving features to corral, this also specifies local directory to save files to.")
     parser.add_argument("--recursive", action="store_true", help='Recursively find .wav,.flac,.npz files in the feature and stimulus dirs')
@@ -87,14 +100,27 @@ if __name__ == "__main__":
     stimulus_paths = collections.OrderedDict(sorted(stimulus_paths.items(), key=lambda x: x[0]))
     stimulus_names = list(stimulus_paths.keys())
     
-    feats1 = load_features(args.feat_dir1, cci_features, args.recursive)
-    feats2 = load_features(args.feat_dir2, cci_features, args.recursive)
+    feats1 = load_features(args.feat_dir1, cci_features, args.recursive, ignore_str='times')
+    if args.feat1_times is None:
+        args.feat1_times = args.feat_dir1
+    feat1_times = load_features(args.feat1_times, cci_features, args.recursive, search_str='times')
+    feats2 = load_features(args.feat_dir2, cci_features, args.recursive, ignore_str='times')
+    if args.feat2_times is None:
+        args.feat2_times = args.feat_dir2
+    feat2_times = load_features(args.feat2_times, cci_features, args.recursive, search_str='times')
+    
     feats1 = split_features(feats1)
+    feat1_times = split_features(feat1_times)
     if args.feat1_type == 'ema':
         feats1 = process_ema(feats1)
     feats2 = split_features(feats2)
+    feat2_times = split_features(feat2_times)
     if args.feat2_type == 'ema':
         feats2 = process_ema(feats2)
+
+    aligned_feats1 = align_times(feats1, feat1_times)
+    aligned_feats2 = align_times(feats2, feat2_times)
+
 
     if args.function == 'lstsq':
         save_path = Path(f'LSTSQRegression_{args.feat1_type}_to_{args.feat2_type}')
@@ -109,13 +135,13 @@ if __name__ == "__main__":
             
         print('Saving regression results to:', save_path)
 
-        regressor = LSTSQRegression(iv=feats1, iv_type=args.feat1_type, dv=feats2, dv_type=args.feat2_type,
+        regressor = LSTSQRegression(iv=aligned_feats1, iv_type=args.feat1_type, dv=aligned_feats2, dv_type=args.feat2_type,
                                     save_path=args.out_dir, zscore=args.zscore, cci_features=cci_features, overwrite=args.overwrite,
                                     local_path=local_path)
         
         regressor.run_regression()
-        for s in stimulus_names:
-            regressor.extract_residuals(feats2[s], s)
+        for s in tqdm(stimulus_names):
+            regressor.extract_residuals(aligned_feats1[s], aligned_feats2[s], s)
 
     
         

@@ -56,6 +56,12 @@ if __name__ == "__main__":
                         help='Most models use a target sample rate of 16000.')
     parser.add_argument('--overwrite', action='store_true',
                                    help='Overwrite existing features (default behavior is to skip)')
+    parser.add_argument('--keep_all', action='store_true',
+                                   help='keep all features rather than following frame_skip, num_select parameters')
+    parser.add_argument("--frame_length", type=float, default=25.,
+                            help="Specify frame length for extraction in MS for methods without set length. We set default to 25ms to match WavLM frames.")
+    parser.add_argument("--frame_shift", type=float, default=20.,
+                            help="Specify frame shift for extraction in MS for methods without set shift. We set default to 20ms to match WavLM frames.")
     #Cotton candy related args (stimulus selection + save to bucket)
     #Cotton candy related args (stimulus selection + save to bucket)
     cc_args = parser.add_argument_group('cc', 'cottoncandy related arguments (loading/saving to corral)')
@@ -83,14 +89,19 @@ if __name__ == "__main__":
                         help="Only save the features from these layers. Usually doesn't speed up execution "
                         "time, but may speed up upload time and reduce total disk usage. "
                         "NOTE: only works with numbered layers (currently).")
-    model_args.add_argument('--keep_all', action='store_true',
-                                   help='keep all features rather than following frame_skip, num_select parameters')
-
     #mfcc args
     mfcc_args = parser.add_argument_group('mfcc', 'args for mfcc extraction')
-    mfcc_args.add_argument('-n_mfcc', type=int,
+    mfcc_args.add_argument('--n_mfcc', type=int, default=20,
                            help="Specify number of mfccs to extract. If none given, defaults to 20")
-
+    #fbank args
+    fbank_args = parser.add_argument_group('fbank', 'args for fbank extraction')
+    fbank_args.add_argument("--num_mel_bins", type=int, default=23,
+                            help="specify number of mel bins for fbank extraction. If none given, defaults to 23, which is also the default of the original function.")
+    #opensmile args
+    os_args = parser.add_argument_group('opensmile', 'args for opensmile extraction')
+    os_args.add_argument("--feature_set", type=str, default="eGeMAPSv02", help="specify opensmile feature set")
+    os_args.add_argument("--feature_level", type=str, default="lld", help="Specify feature level for opensmile. (lld or func)")
+    os_args.add_argument("--default_extractor", action="store_true", help="Specify always using default feature extractor with default frame length/frame shift")
     args = parser.parse_args()
 
     if torch.cuda.is_available(): torch.cuda.empty_cache()
@@ -123,6 +134,11 @@ if __name__ == "__main__":
     model_save_path = Path(f"features_cnk{chunksz_sec:0.1f}_ctx{contextsz_sec:0.1f}_pick{args.num_select_frames}_skip{args.frame_skip}/{args.feature_type}")
     if args.model_name:
         model_save_path = model_save_path / args.model_name
+    if args.feature_type=='opensmile':
+        to_add = f"{args.feature_set}_{args.feature_level}"
+        if not args.default_extractor:
+            to_add += f"_len{args.frame_length}_shift{args.frame_shift}"
+        model_save_path = model_save_path /to_add
     if args.stride:
         # If using a custom stride length (e.g. for snippets), store in a
         # separate directory.
@@ -150,6 +166,10 @@ if __name__ == "__main__":
         extractor = set_up_sparc_extractor(model_name=args.model_name, save_path=model_save_path, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, keep_all=args.keep_all)
     elif 'mfcc' in args.feature_type:
         extractor = set_up_mfcc_extractor(save_path=model_save_path, n_mfcc=args.n_mfcc, target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip)
+    elif 'fbank' in args.feature_type:
+        extractor = set_up_fbank_extractor(save_path=model_save_path, num_mel_bins=args.num_mel_bins, frame_length=args.frame_length, frame_shift=args.frame_shift,target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip, keep_all=args.keep_all)
+    elif 'opensmile' in args.feature_type:
+        extractor = set_up_opensmile_extractor(save_path=model_save_path, feature_set=args.feature_set, feature_level=args.feature_level, default_extractor=args.default_extractor, frame_length=args.frame_length, frame_shift=args.frame_shift,target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip, keep_all=args.keep_all )
     else:
         raise NotImplementedError(f'{args.feature_type} not supported.')
     

@@ -58,3 +58,7 @@ Changed line 369 in generator.py of SPARC to torch.nn.utils.parametrizations.wei
 Ignoring loudness - acoustinc
 Saving happens within a class (since different things might output different features/results of different sizes but take in the same input)
 Loading happens as a separate function in the .py script outside of any class (since it is the same regardless of class for each individual script)
+
+
+Common issues:
+WINDOWS PATHS : make sure / not \ (which is how it shows up in a terminal)
