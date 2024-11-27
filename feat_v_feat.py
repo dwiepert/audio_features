@@ -4,6 +4,7 @@ Perform functions that take in two pairs of features and run functions on them.
 Author(s): Daniela Wiepert, Lasya Yakkala, Rachel Yamamoto
 Last modified: 11/09/2024
 """
+#%%
 #IMPORTS
 #built-in
 import argparse
@@ -17,7 +18,7 @@ from tqdm import tqdm
 
 #local
 from audio_features.io import load_features, split_features
-from audio_features.functions import LSTSQRegression
+from audio_features.functions import LSTSQRegression, RRegression # DEBUG
 from audio_preprocessing.io import select_stimuli
 
 
@@ -100,6 +101,7 @@ if __name__ == "__main__":
     stimulus_paths = collections.OrderedDict(sorted(stimulus_paths.items(), key=lambda x: x[0]))
     stimulus_names = list(stimulus_paths.keys())
     
+    #print(cci_features)
     feats1 = load_features(args.feat_dir1, cci_features, args.recursive, ignore_str='times')
     if args.feat1_times is None:
         args.feat1_times = args.feat_dir1
@@ -109,7 +111,9 @@ if __name__ == "__main__":
         args.feat2_times = args.feat_dir2
     feat2_times = load_features(args.feat2_times, cci_features, args.recursive, search_str='times')
     
+    #print(feats1)
     feats1 = split_features(feats1)
+    #print(feats1)
     feat1_times = split_features(feat1_times)
     if args.feat1_type == 'ema':
         feats1 = process_ema(feats1)
@@ -120,8 +124,18 @@ if __name__ == "__main__":
 
     aligned_feats1 = align_times(feats1, feat1_times)
     aligned_feats2 = align_times(feats2, feat2_times)
-
-
+    
+    ################# DEBUG #############################################
+    
+    save_path = Path(f'{args.function}Regression_{args.feat1_type}_to_{args.feat2_type}')
+    if cci_features is None:
+        save_path = args.out_dir / save_path
+        local_path = None
+    else:
+        local_path = args.out_dir / save_path
+    print('Saving regression results to:', save_path)
+    print('localpath', local_path) # DEBUG
+    ###########################################################################
     if args.function == 'lstsq':
         save_path = Path(f'LSTSQRegression_{args.feat1_type}_to_{args.feat2_type}')
         if args.zscore:
@@ -134,7 +148,7 @@ if __name__ == "__main__":
             local_path = args.out_dir / save_path
             
         print('Saving regression results to:', save_path)
-
+        print('localpath', local_path) # DEBUG
         regressor = LSTSQRegression(iv=aligned_feats1, iv_type=args.feat1_type, dv=aligned_feats2, dv_type=args.feat2_type,
                                     save_path=save_path, zscore=args.zscore, cci_features=cci_features, overwrite=args.overwrite,
                                     local_path=local_path)
@@ -142,11 +156,22 @@ if __name__ == "__main__":
         regressor.run_regression()
         for s in tqdm(stimulus_names):
             regressor.extract_residuals(aligned_feats1[s], aligned_feats2[s], s)
-
     
-        
+    # define what to do for ridge regression here
+    elif args.function == 'ridge':
+        print('Ridge Regression')
     
-
+        regressor = RRegression(iv=aligned_feats1, 
+                                iv_type=args.feat1_type,
+                                dv=aligned_feats2,
+                                dv_type=args.feat2_type,
+                                cci_features=cci_features,
+                                overwrite=args.overwrite,
+                                local_path=local_path,
+                                save_path = save_path)
+        regressor.run_regression()
+        for s in tqdm(stimulus_names):
+            regressor.extract_residuals(aligned_feats1[s], aligned_feats2[s], s)
 
 
 
