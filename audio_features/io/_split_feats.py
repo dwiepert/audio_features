@@ -1,9 +1,20 @@
 """
+Split features 
+
+Author(s): Daniela Wiepert 
+Last modified: 11/28/2024
 """
+#IMPORTS
+##built-in
 import os
 from pathlib import Path 
-def split_features(features:dict):
 
+def split_features(features:dict):
+    """
+    Split feature dict
+    :param features: dict, dictionary of features {path: feature vectors}
+    :return new_feat_dict: dict, dictionary of split features {stimulus name: feature vectors}
+    """
     path_list = features['path_list']
     path_to_fname = {}
     new_feat_dict = {}

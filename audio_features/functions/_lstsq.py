@@ -15,7 +15,7 @@ from typing import Union, List
 import numpy as np
 
 ##local
-from ._utils import _zscore
+from database_utils.functions import _zscore
 
 class LSTSQRegression:
     """
@@ -114,6 +114,11 @@ class LSTSQRegression:
     def _unprocess_features(self, concat, nrows, concat_times):
         """
         Undo concatenation process
+
+        :param concat: np.ndarray, concatenated array
+        :param nrows: dict, start/end indices for each stimulus
+        :param concat_times: np.ndarray, concatenated tiems array
+        :return feats: dict, feature dictionary, stimulus names as keys
         """
         feats = {}
         for f in nrows:
@@ -145,6 +150,9 @@ class LSTSQRegression:
             self.wt = None 
 
     def _check_rows(self):
+        """
+        Check if all rows are equal
+        """
         for s in list(self.iv_rows.keys()):
             assert all(np.equal(self.iv_rows[s], self.dv_rows[s])), f'Stimulus {s} has inconsistent sizes. Please check features.'
     
@@ -169,11 +177,14 @@ class LSTSQRegression:
             np.savez_compressed(str(self.result_paths['weights'])+'.npz', self.wt)
             #np.savez_compressed(str(self.result_paths['lstsq_residuals']['concat']+'.npz'), residuals)
 
-        return
-
     def extract_residuals(self, feats, ref_feats, fname):
         """
         Extract residuals for a set of features
+
+        :param feats: dict, feature dictionary, stimulus names as keys
+        :param ref_feats: dict, feature dictionary of ground truth predicted features, stimulus names as keys
+        :param fname: str, name of stimulus to extract for
+        :return r: extracted residuals
         """
         if self.cci_features is not None:
             if self.cci_features.exists_object(self.result_paths['residuals'][fname]) and not self.overwrite:
@@ -201,3 +212,5 @@ class LSTSQRegression:
         else:
             os.makedirs(self.result_paths['residuals'][fname].parent, exist_ok=True)
             np.savez_compressed(str(self.result_paths['residuals'][fname])+'.npz', r)
+
+        return r

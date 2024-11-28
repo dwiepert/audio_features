@@ -1,4 +1,4 @@
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 
 #change log:
 # 0.0.0: first version
@@ -10,3 +10,4 @@ __version__ = '0.3.3'
 # 0.3.1: ridge regression added
 # 0.3.2: word identity loading added
 # 0.3.3: phone identity loading added
+# 0.3.4: feature downsampling
