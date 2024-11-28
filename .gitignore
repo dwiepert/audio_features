@@ -8,3 +8,6 @@
 test.py
 
 audio_features/.DS_Store
+*.pyc
+audio_features/.DS_Store
+.DS_Store

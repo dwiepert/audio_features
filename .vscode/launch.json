@@ -176,5 +176,26 @@
                 
             ]
         },
+        {
+            "name": "Python Debugger: word identity",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--stimulus_dir=/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/testing",
+                "--stim_bucket=stimulidb",
+                "--session",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "--feature_type=word"
+                
+            ]
+        },
     ]
 }

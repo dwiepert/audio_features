@@ -35,16 +35,16 @@ class LSTSQRegression:
         self.dv_type = dv_type
 
         self.fnames = list(iv.keys())
-
+        self.zscore = zscore
         self.iv, self.iv_rows, self.iv_times = self._process_features(iv)
         self.dv, self.dv_rows, self.dv_times = self._process_features(dv)
 
         self._check_rows()
 
         #TODO: some kind of input to understand how to break apart the concatenated information? or concatenate in here?
-        if zscore:
-            self.iv = _zscore(self.iv)
-            self.dv = _zscore(self.dv)
+        #if zscore:
+        #    self.iv = _zscore(self.iv)
+        #    self.dv = _zscore(self.dv)
 
         self.save_path=Path(save_path)
         if local_path is None or self.cci_features is None:
@@ -93,6 +93,9 @@ class LSTSQRegression:
         for f in self.fnames:
             temp = feat[f]
             n = temp['features']
+            if self.zscore: 
+                n = _zscore(n) #ZSCPORE BY FEATURE
+
             t = temp['times']
             if concat is None:
                 concat = n 

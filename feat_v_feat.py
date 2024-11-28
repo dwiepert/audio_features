@@ -2,7 +2,7 @@
 Perform functions that take in two pairs of features and run functions on them. 
 
 Author(s): Daniela Wiepert, Lasya Yakkala, Rachel Yamamoto
-Last modified: 11/09/2024
+Last modified: 11/27/2024
 """
 #%%
 #IMPORTS
@@ -17,8 +17,8 @@ import numpy as np
 from tqdm import tqdm
 
 #local
-from audio_features.io import load_features, split_features
-from audio_features.functions import LSTSQRegression, RRegression # DEBUG
+from audio_features.io import load_features, split_features, phoneIdentity, wordIdentity, downsample_features
+from audio_features.functions import LSTSQRegression, RRegression 
 from audio_preprocessing.io import select_stimuli
 
 
@@ -53,9 +53,9 @@ if __name__ == "__main__":
     parser.add_argument('--feat1_type', type=str, required=True,
                         help='Specify the type of feature you are using for first argument')
     parser.add_argument('--feat1_times', type=str, default=None)
-    parser.add_argument('--feat_dir2', type=str, required=True,
+    parser.add_argument('--feat_dir2', type=str,
                         help='Specify the path to the second set of features (Always assumes this will be the features to use for the second feature argument in a function)')
-    parser.add_argument('--feat2_type', type=str, required=True,
+    parser.add_argument('--feat2_type', type=str,
                         help='Specify the type of feature you are using for second argument')
     parser.add_argument('--feat2_times', type=str, default=None)
     parser.add_argument('--out_dir', type=str, required=True,
@@ -78,14 +78,20 @@ if __name__ == "__main__":
     cc_args.add_argument('--stories', '--stimuli', nargs='+', type=str,
                                    help="Only process the given stories."
                                    "Overrides --sessions and --subjects.")
-    #LSTSQ Regression specific
-    lstsq_args = parser.add_argument_group('lstsq', 'lstsq related argument')
-    lstsq_args.add_argument("--zscore", action="store_true",
+    #Regression specific
+    reg_args = parser.add_argument_group('reg', 'regression related arguments')
+    reg_args.add_argument("--zscore", action="store_true",
                             help="specify if you want to zscore before running regression.")
+    #Classification specific
+    clf_args = parser.add_argument_group('clf', 'classification related arguments')
+    clf_args.add_argument("--identity_type", type=str, help='Specify whether classifying phones or word sequences')
 
     args = parser.parse_args()
     
     args.out_dir = Path(args.out_dir)
+
+    if args.function != 'clf':
+        assert args.feat_dir2 is not None, 'Must give two features if not doing classification.'
 
     if (args.out_bucket is not None) and (args.out_bucket != ''):
         cci_features = cc.get_interface(args.out_bucket, verbose=False)
@@ -106,35 +112,35 @@ if __name__ == "__main__":
     if args.feat1_times is None:
         args.feat1_times = args.feat_dir1
     feat1_times = load_features(args.feat1_times, cci_features, args.recursive, search_str='times')
-    feats2 = load_features(args.feat_dir2, cci_features, args.recursive, ignore_str='times')
-    if args.feat2_times is None:
-        args.feat2_times = args.feat_dir2
-    feat2_times = load_features(args.feat2_times, cci_features, args.recursive, search_str='times')
-    
     #print(feats1)
     feats1 = split_features(feats1)
     #print(feats1)
     feat1_times = split_features(feat1_times)
     if args.feat1_type == 'ema':
         feats1 = process_ema(feats1)
-    feats2 = split_features(feats2)
-    feat2_times = split_features(feat2_times)
-    if args.feat2_type == 'ema':
-        feats2 = process_ema(feats2)
-
     aligned_feats1 = align_times(feats1, feat1_times)
-    aligned_feats2 = align_times(feats2, feat2_times)
+
+    if args.function != 'clf':
+        feats2 = load_features(args.feat_dir2, cci_features, args.recursive, ignore_str='times')
+        if args.feat2_times is None:
+            args.feat2_times = args.feat_dir2
+        feat2_times = load_features(args.feat2_times, cci_features, args.recursive, search_str='times')
+        feats2 = split_features(feats2)
+        feat2_times = split_features(feat2_times)
+        if args.feat2_type == 'ema':
+            feats2 = process_ema(feats2)
+        aligned_feats2 = align_times(feats2, feat2_times)
     
     ################# DEBUG #############################################
     
-    save_path = Path(f'{args.function}Regression_{args.feat1_type}_to_{args.feat2_type}')
+    save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}')
     if cci_features is None:
         save_path = args.out_dir / save_path
         local_path = None
     else:
         local_path = args.out_dir / save_path
     print('Saving regression results to:', save_path)
-    print('localpath', local_path) # DEBUG
+    #print('localpath', local_path) # DEBUG
     ###########################################################################
     if args.function == 'lstsq':
         save_path = Path(f'LSTSQRegression_{args.feat1_type}_to_{args.feat2_type}')
@@ -165,13 +171,33 @@ if __name__ == "__main__":
                                 iv_type=args.feat1_type,
                                 dv=aligned_feats2,
                                 dv_type=args.feat2_type,
+                                zscore=args.zscore,
                                 cci_features=cci_features,
                                 overwrite=args.overwrite,
                                 local_path=local_path,
                                 save_path = save_path)
         regressor.run_regression()
         for s in tqdm(stimulus_names):
-            regressor.extract_residuals(aligned_feats1[s], aligned_feats2[s], s)
+            regressor.calculate_correlations(aligned_feats1[s], aligned_feats2[s], s)
+   
+    if args.function == 'clf':
+        assert args.identity_type in ['word', 'phone']
+        print(f'{args.identity_type} Classification')
+        
+        if args.identity_type == 'phone':
+            identity = phoneIdentity(stimulus_names)
+        else:
+            identity = wordIdentity(fnames=stimulus_names, pretrained_path='./audio_features/data/english1000sm.hf5')
+
+        seqs = identity.get_seqs()
+        v = identity.get_features()
+
+        downsampled_feats = downsample_features(aligned_feats1, seqs)
+      
+
+
+    else:
+        raise NotImplementedError(f'{args.function} is not implemented')
 
 
 

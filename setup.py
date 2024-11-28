@@ -14,7 +14,8 @@ setup(
         'torch==2.5.0',
         'cottoncandy==0.2.0',
         'torchaudio==2.5.0',
-        'opensmile==2.5.0'
+        'opensmile==2.5.0',
+        'h5py==3.12.1'
     ],
     include_package_data=False,  
     version = __version__,

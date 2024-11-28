@@ -19,6 +19,7 @@ This will be the first stage of setting up this package to run. You will also ne
 * https://github.com/dwiepert/audio_preprocessing.git
 * https://github.com/dwiepert/database_utils.git
 * ffmpeg=6.1.1, you can do this with `conda install conda-forge::ffmpeg=6.1.1`
+* pytables, install with `conda install pytables`
 * https://github.com/dwiepert/sparc.git 
 Please note that we are installing a fork of sparc to deal with a bug that hasn't been addressed in the official implementation
 
@@ -62,3 +63,28 @@ Loading happens as a separate function in the .py script outside of any class (s
 
 Common issues:
 WINDOWS PATHS : make sure / not \ (which is how it shows up in a terminal)
+
+# TODO:
+Rerun V extraction
+Debug ridge regression 
+Split up stories
+
+Run regression for:
+WavLM to fbank
+EMA to fbank
+V to fbank
+
+WavLM to opensmile
+EMA to opensmile
+V to opensmile
+
+Run classification for:
+WavLM to word identity
+EMA to word identity
+V to word identity
+
+WavLM to phone identity
+EMA to phone identity
+V to phone identity
+
+Upload features to a cci bucket 
