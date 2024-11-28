@@ -28,7 +28,7 @@ class phoneIdentity:
         self.artdict = cc.get_interface('subcortical', verbose=False).download_json('artdict')
         self.phonseqs = get_story_phonseqs(self.fnames) #(phonemes, phoneme_times, tr_times)
         
-        downsampled_arthistseqs = {}
+        self.downsampled_arthistseqs = {}
         for story in self.fnames:
             olddata = np.array(
                 [ph.upper().strip("0123456789") for ph in self.phonseqs[story].data])

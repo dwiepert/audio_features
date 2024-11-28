@@ -197,7 +197,7 @@
                 "4",
                 "5",
                 "--function=clf",
-                "--identity_type=word"
+                "--identity_type=phone"
                 
             ]
         },

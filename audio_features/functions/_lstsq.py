@@ -15,7 +15,7 @@ from typing import Union, List
 import numpy as np
 
 ##local
-from database_utils.functions import _zscore
+from database_utils.functions import zscore as _zscore
 
 class LSTSQRegression:
     """

@@ -21,7 +21,7 @@ from sklearn.model_selection import RepeatedKFold
 import pickle
 
 ##local
-from database_utils.functions import _zscore
+from database_utils.functions import zscore as _zscore
 
 class RRegression:
     """
