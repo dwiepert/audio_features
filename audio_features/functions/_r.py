@@ -21,7 +21,7 @@ from sklearn.model_selection import RepeatedKFold
 import pickle
 
 ##local
-from ._utils import _zscore
+from database_utils.functions import zscore as _zscore
 
 class RRegression:
     """
@@ -84,48 +84,6 @@ class RRegression:
          self.pearson_coeff = None
          self.trained_model = None
     
-    
-    def run_regression(self):
-        # cross-validation
-        cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
-
-        # try to find optimal alpha
-        ridge_reg = RidgeCV(alphas=np.arange(0, 1, 0.01), cv=cv, scoring='neg_mean_absolute_error')
-
-        # Fit model with best alpha
-        ridge_reg.fit(self.iv, self.dv)
-        self.trained_model = ridge_reg
-
-        # predict
-        ridge_predict = ridge_reg.predict(self.iv)
-
-        # pearson coefficients
-        correlations = []
-        for i in range(self.dv.shape[1]):
-            corr = np.corrcoef(self.dv[:, i], ridge_predict[:, i])[0, 1]
-            correlations.append(corr)
-        
-        # ridge regression solution
-        coefficients = ridge_reg.coef_
-        
-     
-        # pearson correlations
-        self.pearson_coeff = np.array(correlations)
-
-        # Save the model to a file using pickle
-        with open(self.save_path / 'ridge_regression_model.pkl', 'wb') as file:
-            pickle.dump(ridge_reg, file)
-            
-        if self.cci_features:
-            self.cci_features.upload_raw_array(self.result_paths['pcorr'], self.pearson_coeff)
-                                           
-        else:
-            os.makedirs(self.save_path, exist_ok=True)
-            np.savez_compressed(str(self.result_paths['pcorr'])+'.npz', self.pearson_coeff)
-          
-
-
-        
     def _process_features(self, feat:dict):
         """
         Concatenate features from separate files into one and maintain information to undo concatenation
@@ -161,6 +119,11 @@ class RRegression:
     def _unprocess_features(self, concat, nrows, concat_times):
         """
         Undo concatenation process
+
+        :param concat: np.ndarray, concatenated array
+        :param nrows: dict, start/end indices for each stimulus
+        :param concat_times: np.ndarray, concatenated tiems array
+        :return feats: dict, feature dictionary, stimulus names as keys
         """
         feats = {}
         for f in nrows:
@@ -171,13 +134,61 @@ class RRegression:
         return feats
     
     def _check_rows(self):
+        """
+        Check that all rows match
+        """
         for s in list(self.iv_rows.keys()):
             assert all(np.equal(self.iv_rows[s], self.dv_rows[s])), f'Stimulus {s} has inconsistent sizes. Please check features.'
     
+    def run_regression(self):
+        """
+        Run regression
+        """
+        # cross-validation
+        cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+
+        # try to find optimal alpha
+        ridge_reg = RidgeCV(alphas=np.arange(0, 1, 0.01), cv=cv, scoring='neg_mean_absolute_error')
+
+        # Fit model with best alpha
+        ridge_reg.fit(self.iv, self.dv)
+        self.trained_model = ridge_reg
+
+        # predict
+        ridge_predict = ridge_reg.predict(self.iv)
+
+        # pearson coefficients
+        correlations = []
+        for i in range(self.dv.shape[1]):
+            corr = np.corrcoef(self.dv[:, i], ridge_predict[:, i])[0, 1]
+            correlations.append(corr)
+        
+        # ridge regression solution
+        self.coefficients = ridge_reg.coef_
+        
+        # pearson correlations
+        self.pearson_coeff = np.array(correlations)
+
+        # Save the model to a file using pickle
+        with open(self.save_path / 'ridge_regression_model.pkl', 'wb') as file:
+            pickle.dump(ridge_reg, file)
+            
+        if self.cci_features:
+            self.cci_features.upload_raw_array(self.result_paths['pcorr'], self.pearson_coeff)
+                                           
+        else:
+            os.makedirs(self.save_path, exist_ok=True)
+            np.savez_compressed(str(self.result_paths['pcorr'])+'.npz', self.pearson_coeff)
+          
     
     def calculate_correlations(self, feats, ref_feats, fname):
         """
         Calculate average correlation
+
+        :param feats: dict, feature dictionary, stimulus names as keys
+        :param ref_feats: dict, feature dictionary of ground truth predicted features, stimulus names as keys
+        :param fname: str, name of stimulus to extract for
+        :param r2: averaged correlation across features
         """
         #with open(self.save_path / 'ridge_regression_model.pkl', 'rb') as file:
          #   self.trained_model = pickle.load(file)
@@ -204,8 +215,6 @@ class RRegression:
             correlations.append(corr)
         r2 = np.mean(correlations)
         
-
-
         if fname not in self.result_paths['corr']:
             self.result_paths['corr'][fname] = self.save_path / fname
         
@@ -217,3 +226,5 @@ class RRegression:
             print('not features')
             os.makedirs(self.result_paths['corr'][fname].parent, exist_ok=True)
             np.savez_compressed(str(self.result_paths['corr'][fname])+'.npz', r2)
+        
+        return r2

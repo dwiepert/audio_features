@@ -183,6 +183,9 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
+                "--feat_dir1=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
+                "--feat1_times=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/",
+                "--feat1_type=wavlm-large.9",
                 "--stimulus_dir=/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
                 "--out_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/testing",
@@ -193,7 +196,8 @@
                 "3",
                 "4",
                 "5",
-                "--feature_type=word"
+                "--function=clf",
+                "--identity_type=phone"
                 
             ]
         },

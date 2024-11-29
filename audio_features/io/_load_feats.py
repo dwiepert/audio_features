@@ -1,14 +1,27 @@
-import os
+"""
+Load features from .npz file
+
+Author(s): Daniela Wiepert
+Last modified: 11/28/2024
+"""
+#IMPORTS
+##built-in
 from pathlib import Path
 from typing import Union
 
+##third-party
 import numpy as np
 
 def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool=False, ignore_str:str=None,search_str:str=None):
     """
     Load features
 
-    TODO
+    :param feature dir: str/Path object, points to directory with feature dirs
+    :param cci_features: cotton candy bucket
+    :param recursive: bool, indicates whether to load features recursively
+    :param ignore_str: str, string pattern to ignore when loading features
+    :param search_str: str, string pattern to search for when loading features
+    :param features: loaded feature dict
     """
     feature_dir = Path(feature_dir)
     if cci_features is None:
