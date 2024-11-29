@@ -160,8 +160,7 @@
                 "ema",
                 "--feat2_type",
                 "wavlm-large.9",
-                "--function",
-                "lstsq",
+                "--function=lstsq",
                 "--out_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/lstsq_residuals",
                  "--stimulus_dir",
@@ -172,7 +171,8 @@
                 "3",
                 "4",
                 "5",
-                "--zscore"
+                "--zscore",
+                "--overwrite"
                 
             ]
         },
@@ -197,8 +197,8 @@
                 "4",
                 "5",
                 "--function=clf",
-                "--identity_type=phone"
-                
+                "--identity_type=phone",
+                "--metric_type=accuracy"
             ]
         },
     ]

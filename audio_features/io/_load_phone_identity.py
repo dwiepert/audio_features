@@ -32,12 +32,12 @@ class phoneIdentity:
         for story in self.fnames:
             olddata = np.array(
                 [ph.upper().strip("0123456789") for ph in self.phonseqs[story].data])
-            ph_2_art = self._ph_to_articulate(olddata, self.artdict)
-            arthistseq = self._histogram_articulates(ph_2_art, self.phonseqs[story])
-            self.downsampled_arthistseqs[story] = lanczosinterp2D(
-			arthistseq[0], arthistseq[2], arthistseq[3])
+            ph_2_art = self._ph_to_articulate(ds=olddata, ph_2_art=self.artdict)
+            arthistseq = self._histogram_articulates(ds=ph_2_art, data=self.phonseqs[story])
+            self.downsampled_arthistseqs[story] = {'original': arthistseq[0], 'original_times': arthistseq[2], 'downsampled':lanczosinterp2D(
+			arthistseq[0], arthistseq[2], arthistseq[3])}
     
-    def _ph_to_articulate(ds: DataSequence, ph_2_art:dict):
+    def _ph_to_articulate(self, ds:DataSequence, ph_2_art:dict):
         """ 
         Following make_phoneme_ds converts the phoneme DataSequence object to an
         articulate Datasequence for each grid.
@@ -55,7 +55,7 @@ class phoneIdentity:
 	
         return articulate_ds
     
-    def _histogram_articulates(ds:DataSequence, data,  articulateset:List[str]=_articulates):
+    def _histogram_articulates(self, ds:DataSequence, data,  articulateset:List[str]=_articulates):
         """
         Histograms the articulates in the DataSequence [ds].
         From encoding-models-large-features

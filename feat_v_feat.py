@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 #local
 from audio_features.io import load_features, split_features, phoneIdentity, wordIdentity, downsample_features
-from audio_features.functions import LSTSQRegression, RRegression 
+from audio_features.functions import LSTSQRegression, RRegression, LinearClassification
 from audio_preprocessing.io import select_stimuli
 
 
@@ -78,13 +78,13 @@ if __name__ == "__main__":
     cc_args.add_argument('--stories', '--stimuli', nargs='+', type=str,
                                    help="Only process the given stories."
                                    "Overrides --sessions and --subjects.")
-    #Regression specific
-    reg_args = parser.add_argument_group('reg', 'regression related arguments')
-    reg_args.add_argument("--zscore", action="store_true",
+    #Model specific
+    model_args = parser.add_argument_group('model', 'model related arguments')
+    model_args.add_argument("--zscore", action="store_true",
                             help="specify if you want to zscore before running regression.")
-    #Classification specific
-    clf_args = parser.add_argument_group('clf', 'classification related arguments')
-    clf_args.add_argument("--identity_type", type=str, help='Specify whether classifying phones or word sequences')
+    model_args.add_argument("--scoring", type=str)
+    model_args.add_argument("--metric_type", type=str)
+    model_args.add_argument("--identity_type", type=str, help='Specify whether classifying phones or word sequences')
 
     args = parser.parse_args()
     
@@ -159,7 +159,7 @@ if __name__ == "__main__":
                                     save_path=save_path, zscore=args.zscore, cci_features=cci_features, overwrite=args.overwrite,
                                     local_path=local_path)
         
-        regressor.run_regression()
+
         for s in tqdm(stimulus_names):
             regressor.extract_residuals(aligned_feats1[s], aligned_feats2[s], s)
     
@@ -172,15 +172,16 @@ if __name__ == "__main__":
                                 dv=aligned_feats2,
                                 dv_type=args.feat2_type,
                                 zscore=args.zscore,
+                                scoring=args.scoring,
                                 cci_features=cci_features,
                                 overwrite=args.overwrite,
                                 local_path=local_path,
                                 save_path = save_path)
-        regressor.run_regression()
+        
         for s in tqdm(stimulus_names):
             regressor.calculate_correlations(aligned_feats1[s], aligned_feats2[s], s)
    
-    if args.function == 'clf':
+    elif args.function == 'clf':
         assert args.identity_type in ['word', 'phone']
         print(f'{args.identity_type} Classification')
         
@@ -193,6 +194,23 @@ if __name__ == "__main__":
         v = identity.get_features()
 
         downsampled_feats = downsample_features(aligned_feats1, seqs)
+
+        classifier = LinearClassification(iv=downsampled_feats,
+                                          iv_type=args.feat1_type,
+                                          dv=v,
+                                          dv_type=args.identity_type,
+                                          metric_type=args.metric_type,
+                                          save_path=save_path,
+                                          zscore=args.zscore,
+                                          scoring=args.scoring,
+                                          cci_features=cci_features,
+                                          overwrite=args.overwrite,
+                                          local_path=local_path)
+
+        for s in tqdm(stimulus_names):
+            classifier.score(downsampled_feats[s], v[s], s)
+
+        #print('pause')
       
 
 

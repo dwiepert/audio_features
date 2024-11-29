@@ -34,12 +34,14 @@ class RRegression:
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path], zscore:bool=True,
-                 cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
+    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.arange(0, 1, 0.01), zscore:bool=True,
+                 scoring:str='neg_mean_absolute_error',cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
          self.iv_type = iv_type
          self.dv_type = dv_type
     
          self.fnames = list(iv.keys())
+         self.alphas = alphas
+         self.scoring = scoring
          self.zscore = zscore
          self.iv, self.iv_rows, self.iv_times = self._process_features(iv)
          self.dv, self.dv_rows, self.dv_times = self._process_features(dv)
@@ -66,23 +68,29 @@ class RRegression:
     
          self.config = {
              'iv_type': self.iv_type,'iv_shape': self.iv.shape, 'iv_rows': self.iv_rows, 
-             'dv_type': self.dv_type, 'dv_shape': self.dv.shape, 'dv_rows':self.dv_rows,
+             'dv_type': self.dv_type, 'dv_shape': self.dv.shape, 'dv_rows':self.dv_rows, 
+             'alphas': self.alphas.tolist(), 'scoring':self.scoring,
              'train_fnames': self.fnames, 'overwrite': self.overwrite
          }
     
          os.makedirs(self.local_path, exist_ok=True)
          with open(str(self.local_path / 'ridgeRegression_config.json'), 'w') as f:
              json.dump(self.config,f)
-         
-         self.result_paths = {'pcorr': self.save_path/'pcorr'}
+        
+         if self.cci_features is None:
+            self.result_paths = {'models': self.save_path/'model'}
+         else:
+            self.result_paths = {'models': self.local_path/'model'}
+         #self.result_paths = {'pcorr': self.save_path/'pcorr'}
          self.result_paths['corr'] = {}
         
          for f in self.fnames:
              self.result_paths['corr'][f] = self.save_path / f
           
-         #self._check_previous()
-         self.pearson_coeff = None
-         self.trained_model = None
+         self._check_previous()
+         self._fit()
+         #self.pearson_coeff = None
+         #self.ridge_reg = None
     
     def _process_features(self, feat:dict):
         """
@@ -140,45 +148,66 @@ class RRegression:
         for s in list(self.iv_rows.keys()):
             assert all(np.equal(self.iv_rows[s], self.dv_rows[s])), f'Stimulus {s} has inconsistent sizes. Please check features.'
     
-    def run_regression(self):
+    def _check_previous(self):
+        """
+        """
+        self.weights_exist = False
+        if Path(str(self.result_paths['model'])+'.pkl').exists(): self.weights_exist=True
+
+        if self.weights_exist and not self.overwrite:
+            with open(str(self.result_paths['model']+'.pkl'), 'r') as f:
+                self.model = pickle.load(f)
+        else:
+            self.model=None
+
+    def _fit(self):
         """
         Run regression
         """
+        if self.weights_exist and not self.overwrite:
+            print('Model already fitted and should not be overwritten')
+            return
         # cross-validation
         cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
 
         # try to find optimal alpha
-        ridge_reg = RidgeCV(alphas=np.arange(0, 1, 0.01), cv=cv, scoring='neg_mean_absolute_error')
+        self.model = RidgeCV(alphas=self.alphas, cv=cv, scoring=self.scoring)
 
         # Fit model with best alpha
-        ridge_reg.fit(self.iv, self.dv)
-        self.trained_model = ridge_reg
+        self.model.fit(self.iv, self.dv)
+        #self.trained_model = ridge_reg
 
         # predict
-        ridge_predict = ridge_reg.predict(self.iv)
+        #ridge_predict = self.ridge_reg.predict(self.iv)
 
         # pearson coefficients
-        correlations = []
-        for i in range(self.dv.shape[1]):
-            corr = np.corrcoef(self.dv[:, i], ridge_predict[:, i])[0, 1]
-            correlations.append(corr)
+        #correlations = []
+        #for i in range(self.dv.shape[1]):
+        #    corr = np.corrcoef(self.dv[:, i], ridge_predict[:, i])[0, 1]
+        #    correlations.append(corr)
         
         # ridge regression solution
-        self.coefficients = ridge_reg.coef_
+        #self.coefficients = self.ridge_reg.coef_
         
         # pearson correlations
-        self.pearson_coeff = np.array(correlations)
+        #self.pearson_coeff = np.array(correlations)
+
+        if self.cci_features:
+            print('Model cannot be saved to cci_features. Saving to local path instead')
+        
+            #self.cci_features.upload_raw_array(self.result_paths['models'], self.ridge)
 
         # Save the model to a file using pickle
-        with open(self.save_path / 'ridge_regression_model.pkl', 'wb') as file:
-            pickle.dump(ridge_reg, file)
+        os.makedirs(self.result_paths['model'], exist_ok=True)
+        with open(str(self.result_paths['model'])+'.pkl', 'wb') as file:
+            pickle.dump(self.model, file)
             
-        if self.cci_features:
-            self.cci_features.upload_raw_array(self.result_paths['pcorr'], self.pearson_coeff)
+        #if self.cci_features:
+        #    self.cci_features.upload_raw_array(self.result_paths['pcorr'], self.pearson_coeff)
                                            
-        else:
-            os.makedirs(self.save_path, exist_ok=True)
-            np.savez_compressed(str(self.result_paths['pcorr'])+'.npz', self.pearson_coeff)
+       #else:
+        #    os.makedirs(self.save_path, exist_ok=True)
+         #   np.savez_compressed(str(self.result_paths['pcorr'])+'.npz', self.pearson_coeff)
           
     
     def calculate_correlations(self, feats, ref_feats, fname):
@@ -200,30 +229,33 @@ class RRegression:
                 return 
         
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
+        assert self.model is not None, 'Regression has not been run yet. Please do so.'
+
         f = feats['features']
         t = feats['times']
         rf = ref_feats['features']
         rt = ref_feats['times']
         
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
-        f = f.astype(self.trained_model.coef_.dtype)
-        pred = self.trained_model.predict(f)
+        f = f.astype(self.model.coef_.dtype)
+        pred = self.model.predict(f)
         
         correlations = []
         for i in range(rf.shape[1]):
             corr = np.corrcoef(rf[:, i], pred[:, i])[0, 1]
             correlations.append(corr)
-        r2 = np.mean(correlations)
+        r2 = np.ndarray(correlations)
+        #r2 = np.mean(correlations)
         
         if fname not in self.result_paths['corr']:
             self.result_paths['corr'][fname] = self.save_path / fname
         
         if self.cci_features:
-            print('features')
+            #print('features')
             self.cci_features.upload_raw_array(self.result_paths['corr'][fname], r2)
-            print(self.result_paths['residuals'][fname])
+            #print(self.result_paths['residuals'][fname])
         else:
-            print('not features')
+            #print('not features')
             os.makedirs(self.result_paths['corr'][fname].parent, exist_ok=True)
             np.savez_compressed(str(self.result_paths['corr'][fname])+'.npz', r2)
         

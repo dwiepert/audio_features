@@ -9,7 +9,7 @@ Last Modified: 11/14/2024
 import json
 import os
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 
 ##third-party
 import numpy as np
@@ -77,6 +77,7 @@ class LSTSQRegression:
             #self.result_paths['lstsq_residuals'][f] = rr_path /f
         #self.result_paths['lstsq_residuals']['concat'] = rr_path
         self._check_previous()
+        self._fit()
     
     def _process_features(self, feat:dict):
         """
@@ -156,15 +157,16 @@ class LSTSQRegression:
         for s in list(self.iv_rows.keys()):
             assert all(np.equal(self.iv_rows[s], self.dv_rows[s])), f'Stimulus {s} has inconsistent sizes. Please check features.'
     
-    def run_regression(self):
+    def _fit(self):
         """
         Run least squares regression
         Saves features, sets self.wt to the learned weights
         """
-        if self.wt is not None and not self.overwrite:
+        if self.weights_exist and not self.overwrite:
+            assert self.wt is not None, 'Weights do not exist. Loading weights went wrong.'
             print('Weights already exist and should not be overwritten')
             return
-        print('CHANGE BACK')
+        
         x, residuals, rank, s = np.linalg.lstsq(self.iv, self.dv)
         
         self.wt = x 
@@ -173,7 +175,7 @@ class LSTSQRegression:
             self.cci_features.upload_raw_array(self.result_paths['weights'], self.wt)
             #self.cci_features.upload_raw_array(self.result_paths['lstsq_residuals'], residuals)
         else:
-            os.makedirs(self.save_path, exist_ok=True)
+            os.makedirs(self.result_paths['weights'], exist_ok=True)
             np.savez_compressed(str(self.result_paths['weights'])+'.npz', self.wt)
             #np.savez_compressed(str(self.result_paths['lstsq_residuals']['concat']+'.npz'), residuals)
 
@@ -193,7 +195,7 @@ class LSTSQRegression:
             if Path(str(self.result_paths['residuals'][fname]) + '.npz').exists() and not self.overwrite:
                 return 
         
-        assert self.wt is not None, 'Regression has not been run yet. Please do so.'
+        #assert self.wt is not None, 'Regression has not been run yet. Please do so.'
         f = feats['features']
         t = feats['times']
         rf = ref_feats['features']
