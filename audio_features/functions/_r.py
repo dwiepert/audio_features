@@ -34,7 +34,7 @@ class RRegression:
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.arange(0, 1, 0.01), zscore:bool=True,
+    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.logspace(-5,2,num=10), zscore:bool=True,
                  scoring:str='neg_mean_absolute_error',cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
          self.iv_type = iv_type
          self.dv_type = dv_type
@@ -78,9 +78,9 @@ class RRegression:
              json.dump(self.config,f)
         
          if self.cci_features is None:
-            self.result_paths = {'models': self.save_path/'model'}
+            self.result_paths = {'model': self.save_path/'model'}
          else:
-            self.result_paths = {'models': self.local_path/'model'}
+            self.result_paths = {'model': self.local_path/'model'}
          #self.result_paths = {'pcorr': self.save_path/'pcorr'}
          self.result_paths['corr'] = {}
         
@@ -155,7 +155,7 @@ class RRegression:
         if Path(str(self.result_paths['model'])+'.pkl').exists(): self.weights_exist=True
 
         if self.weights_exist and not self.overwrite:
-            with open(str(self.result_paths['model']+'.pkl'), 'r') as f:
+            with open(str(self.result_paths['model'])+'.pkl', 'rb') as f:
                 self.model = pickle.load(f)
         else:
             self.model=None
@@ -168,7 +168,7 @@ class RRegression:
             print('Model already fitted and should not be overwritten')
             return
         # cross-validation
-        cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+        cv = RepeatedKFold(n_splits=5, n_repeats=1, random_state=1)
 
         # try to find optimal alpha
         self.model = RidgeCV(alphas=self.alphas, cv=cv, scoring=self.scoring)
@@ -221,12 +221,13 @@ class RRegression:
         """
         #with open(self.save_path / 'ridge_regression_model.pkl', 'rb') as file:
          #   self.trained_model = pickle.load(file)
-        if self.cci_features is not None:
-            if self.cci_features.exists_object(self.result_paths['corr'][fname]) and not self.overwrite:
-                return 
-        else:
-            if Path(str(self.result_paths['corr'][fname]) + '.npz').exists() and not self.overwrite:
-                return 
+        if fname in self.result_paths['corr']:
+            if self.cci_features is not None:
+                if self.cci_features.exists_object(self.result_paths['corr'][fname]) and not self.overwrite:
+                    return 
+            else:
+                if Path(str(self.result_paths['corr'][fname]) + '.npz').exists() and not self.overwrite:
+                    return 
         
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
@@ -241,10 +242,10 @@ class RRegression:
         pred = self.model.predict(f)
         
         correlations = []
-        for i in range(rf.shape[1]):
-            corr = np.corrcoef(rf[:, i], pred[:, i])[0, 1]
+        for i in range(rf.shape[0]):
+            corr = np.corrcoef(pred[i,:], rf[i,:])[0, 1]
             correlations.append(corr)
-        r2 = np.ndarray(correlations)
+        r2 = np.array(correlations)
         #r2 = np.mean(correlations)
         
         if fname not in self.result_paths['corr']:

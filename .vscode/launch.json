@@ -177,6 +177,38 @@
             ]
         },
         {
+            "name": "Python Debugger: RidgeRegression",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--feat_dir2",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/fbank/",
+                "--feat_dir1",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
+                "--feat1_times",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/",
+                "--feat1_type",
+                "wavlm-large.9",
+                "--feat2_type",
+                "fbank",
+                "--function=ridge",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/",
+                 "--stimulus_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
+                "--session",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "--zscore",
+                "--split"   
+            ]
+        },
+        {
             "name": "Python Debugger: word identity",
             "type": "debugpy",
             "request": "launch",

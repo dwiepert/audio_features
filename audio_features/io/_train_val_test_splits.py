@@ -29,7 +29,7 @@ class DatasetSplitter:
         
         return train_stories, val_stories, test_stories
 
-    def generate_splits(self):
+    def _generate_splits(self):
         splits = []
         for _ in range(self.num_splits):
             train, val, test = self.split_stories()
@@ -40,12 +40,13 @@ class DatasetSplitter:
         with open(splits_file, 'w') as f:
             json.dump(splits, f, indent=4)
         print(f"Saved splits to {splits_file}")
+        return splits
 
     def load_splits(self) -> List[Dict[str, List[str]]]:
         splits_file = os.path.join(self.output_dir, 'splits.json')
         if not os.path.exists(splits_file):
-            raise FileNotFoundError(f"No splits file found at {splits_file}. Run generate_splits first.")
-        
+            return self._generate_splits()
+            #raise FileNotFoundError(f"No splits file found at {splits_file}. Run generate_splits first.")
         with open(splits_file, 'r') as f:
             splits = json.load(f)
         return splits

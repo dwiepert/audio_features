@@ -16,7 +16,7 @@ class wordIdentity:
     """
     Word Identity features
 
-    :param fnames: list, List of stimulus names
+    :param fnames: list,List of stimulus names
     :param pretrained_path: str, path to pretrained SemanticModel
     """
     def __init__(self, fnames:List[str], pretrained_path:str='./audio_features/data/english1000sm.hf5'):
