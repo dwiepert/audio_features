@@ -1,0 +1,73 @@
+---
+title: "SLT Final"
+output: html_document
+date: "2024-12-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(reticulate)
+```
+
+
+```{r read, include=FALSE}
+np <- import("numpy")
+
+read_split <- function(split_dir){
+  avg_corr <- 0
+  count <- 0
+  files <- list.files(path=split_dir, pattern='npz', full.names=TRUE)
+  
+  for (i in 1:length(files)){
+    corrs <- data.frame(np$load(files[i])['arr_0']) %>% na.omit()
+    colnames(corrs) <- c("x")
+    m <- mean(as.numeric(corrs$x))
+    print(m)
+    avg_corr <- avg_corr + m
+    count <- count + 1
+  }
+  avg_corr <- avg_corr / count
+  return(avg_corr)
+}
+
+read_feat <- function(split_list){
+  avg_corr <- 0
+  count <- 0
+  
+  for (i in 1:length(split_list)){
+    out <- read_split(split_list[i])
+    avg_corr <- avg_corr + out
+    count <- count + 1
+  }
+  
+  avg_corr <- avg_corr / count
+  return(avg_corr)
+}
+
+wlm9_f <- c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split4')
+wlm9_f_corr <- read_feat(wlm9_f)
+
+s_f <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split4')
+s_f_corr <- read_feat(s_f)
+
+l_f <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split4')
+l_f_corr <- read_feat(l_f)
+
+corrs <- c(wlm9_f_corr, s_f_corr, l_f_corr)
+print(corrs)
+
+
+### OPENSMILE
+wlm9_o <- c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split4')
+wlm9_o_corr <- read_feat(wlm9_o)
+
+s_o <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split4')
+s_o_corr <- read_feat(s_o)
+
+l_o <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split4')
+l_o_corr <- read_feat(l_o)
+
+corrs <- c(wlm9_o_corr, s_o_corr, l_o_corr)
+print(corrs)
+```

@@ -82,6 +82,27 @@
             ]
         },
         {
+            "name": "Python Debugger: fbank-custom",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--stimulus_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/",
+                "--feature_type",
+                "fbank40",
+                "--num_mel_bins=40",
+                "--full_context",
+                "--batchsz",
+                "1",
+                "--return_numpy",
+                "--overwrite"
+            ]
+        },
+        {
             "name": "Python Debugger: opensmile - default",
             "type": "debugpy",
             "request": "launch",
@@ -184,15 +205,13 @@
             "console": "integratedTerminal",
             "args": [
                 "--feat_dir2",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/fbank/",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/opensmile/ComParE_2016_lld_len25.0_shift20.0/",
                 "--feat_dir1",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
-                "--feat1_times",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/",
-                "--feat1_type",
-                "wavlm-large.9",
+                "--feat1_type=wavlm-large.9",
+                "--feat1_times=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large",
                 "--feat2_type",
-                "fbank",
+                "opensmile",
                 "--function=ridge",
                 "--out_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/",
@@ -205,7 +224,8 @@
                 "4",
                 "5",
                 "--zscore",
-                "--split"   
+                "--split",
+                "--split_path=/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/splits/"   
             ]
         },
         {

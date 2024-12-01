@@ -38,6 +38,8 @@ def process_ema(ema_feats:dict):
 def align_times(feats, times):
     features = {}
     for s in list(feats.keys()):
+        if s == 'weights':
+            continue
         f = feats[s]
         t = times[s]
         sort_i = np.argsort(t, axis=0)[:,0]
@@ -239,8 +241,8 @@ if __name__ == "__main__":
       
 
 
-    else:
-        raise NotImplementedError(f'{args.function} is not implemented')
+        else:
+            raise NotImplementedError(f'{args.function} is not implemented')
 
 
 
