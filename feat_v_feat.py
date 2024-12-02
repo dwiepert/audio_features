@@ -165,6 +165,7 @@ if __name__ == "__main__":
             if args.function != 'clf':
                 train_feats2 = aligned_feats2
                 test_feats2 = aligned_feats2
+            new_path = save_path
         else:
             new_path = save_path/f'split{i}'
             train_feats1, val_feats1, test_feats1 = splitter.split_features(aligned_feats1, s)
