@@ -255,9 +255,14 @@ class RRegression:
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
 
-        f, f_unz = _zscore(feats['features'], return_unzvals=True)
+        if self.zscore:
+            f, f_unz = _zscore(feats['features'], return_unzvals=True)
+            rf = _zscore(ref_feats['features'])
+        else:
+            f = feats['features']
+            rf = ref_feats['features']
+
         t = feats['times']
-        rf = _zscore(ref_feats['features'])
         rt = ref_feats['times']
         
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
