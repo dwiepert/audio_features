@@ -162,9 +162,8 @@ if __name__ == "__main__":
             train_feats1 = aligned_feats1
             test_feats1 = aligned_feats1
 
-            if args.function != 'clf':
-                train_feats2 = aligned_feats2
-                test_feats2 = aligned_feats2
+            train_feats2 = aligned_feats2
+            test_feats2 = aligned_feats2
             new_path = save_path
         else:
             new_path = save_path/f'split{i}'
@@ -181,7 +180,7 @@ if __name__ == "__main__":
             
 
             for k in tqdm(list(test_feats1.keys())):
-                regressor.extract_residuals(test_feats1[k], test_feats2[k], s)
+                regressor.extract_residuals(test_feats1[k], test_feats2[k], k)
         
         # define what to do for ridge regression here
         elif args.function == 'ridge':

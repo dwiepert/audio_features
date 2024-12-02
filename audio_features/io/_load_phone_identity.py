@@ -192,8 +192,6 @@ class phoneIdentity:
         tdict1 = {}
         tdict2 = {}
         for story in list(features.keys()):
-
-
             print(f'Extracting {story}')
             stime = time.time()
             feat = features[story]['features']
