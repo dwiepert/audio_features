@@ -122,11 +122,14 @@ if __name__ == "__main__":
             raise NotImplementedError("Only compatible with min_type 1 and 2")
         
         if args.function == 'clf':
-            aligned_feats1 = {'features': temp['features'], 'times':temp['times']}
-            aligned_feats2 = {'features': temp['identity_targets'], 'times': temp['times']}
+            aligned_feats1 = align_times(temp['features'], temp['times'])
+            aligned_feats2 = align_times(temp['identity_targets'], temp['times'])
         else:
-            aligned_feats1 = {'features': temp['features'], 'times':temp['times']}
-            aligned_feats2 = {'features': temp['reg_targets'], 'times': temp['times']}
+            aligned_feats1 = align_times(temp['features'], temp['times'])
+            aligned_feats2 = align_times(temp['reg_targets'], temp['times'])
+        
+            #aligned_feats1 = {'features': temp['features'], 'times':temp['times']}
+            #aligned_feats2 = {'features': temp['reg_targets'], 'times': temp['times']}
     
     ## SAVING
     save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}_zscore{args.zscore}')

@@ -96,19 +96,23 @@ class phoneIdentity:
         newdata = load_features(self.phone_dir, 'phone', self.cci_features, self.recursive, ignore_str=['_phones', '_times'])
         times = load_features(self.phone_dir, 'phone', self.cci_features, self.recursive, search_str='_times')
         for story in fnames:
-            self.phone_identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
+            print('REMOVE LATER')
+            if story in olddata and story in newdata and story in times:
+                self.phone_identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
     
     def _phone_to_onehot(self):
         self.vocab = {}
         i = 0
         for s in self.fnames:
-            pi = self.phone_identity[s]['original_data']
-            for p in pi:
-                #print(p)
-                p = p.strip(" ")
-                if p not in self.vocab and p not in _bad_words:
-                    self.vocab[p] = i
-                    i += 1
+            print('remove later')
+            if s in self.phone_identity:
+                pi = self.phone_identity[s]['original_data']
+                for p in pi:
+                    #print(p)
+                    p = p.strip(" ")
+                    if p not in self.vocab and p not in _bad_words:
+                        self.vocab[p] = i
+                        i += 1
         for p in self.vocab:
             temp = self.vocab[p]
             one_hot = np.zeros((len(self.vocab)))
@@ -169,19 +173,19 @@ class phoneIdentity:
 
     def align_features(self, features, save_dir):
         save_dir = Path(save_dir)
+        if not self.overwrite:
+            out1, out2 = self._load_aligned(save_dir)
 
-        out1, out2 = self._load_aligned(save_dir)
+            skip = True
+            for o in out1:
+                if not bool(o):
+                    skip = False
+            for o in out2:
+                if not bool(o):
+                    skip = False
 
-        skip = True
-        for o in out1:
-            if bool(o):
-                skip = False
-        for o in out2:
-            if bool(o):
-                skip = False
-
-        if skip:
-            return out1, out2
+            if skip:
+                return out1, out2
             
         new_feats1 = {}
         new_feats2 = {}

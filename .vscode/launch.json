@@ -205,13 +205,13 @@
             "console": "integratedTerminal",
             "args": [
                 "--feat_dir2",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/opensmile/ComParE_2016_lld_len25.0_shift20.0/",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/phone_identity/",
                 "--feat_dir1",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
                 "--feat1_type=wavlm-large.9",
                 "--feat1_times=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large",
                 "--feat2_type",
-                "opensmile",
+                "phone",
                 "--function=ridge",
                 "--out_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/",
@@ -229,7 +229,6 @@
                 "--min_type=1",
                 "--split",
                 "--split_path=/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/splits/",
-                "--overwrite"   
             ]
         },
         {

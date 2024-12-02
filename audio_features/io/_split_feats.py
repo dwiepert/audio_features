@@ -21,9 +21,7 @@ def split_features(features:dict):
 
     for p in path_list:
         fname = os.path.splitext(Path(p).name)
-        fname = fname[0].replace("_times","")
-        fname = fname.replace("_phones", "")
-        fname = fname.replace("_words", "")
+        fname = fname[0].split(sep="_")[0]
         path_to_fname[str(p)] = fname
     
     for f in features:

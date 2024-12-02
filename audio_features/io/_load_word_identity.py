@@ -123,16 +123,15 @@ class wordIdentity:
 
     def align_features(self, features, save_dir):
         save_dir = Path(save_dir)
-
         if not self.overwrite:
             out1, out2 = self._load_aligned(save_dir)
 
             skip = True
             for o in out1:
-                if bool(o):
+                if not bool(o):
                     skip = False
             for o in out2:
-                if bool(o):
+                if not bool(o):
                     skip = False
 
             if skip:
