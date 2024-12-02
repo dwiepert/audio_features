@@ -18,35 +18,9 @@ import numpy as np
 from tqdm import tqdm
 
 #local
-from audio_features.io import DatasetSplitter, load_features, split_features, phoneIdentity, wordIdentity, downsample_features
+from audio_features.io import DatasetSplitter, load_features, split_features, phoneIdentity, wordIdentity, downsample_features, align_times
 from audio_features.functions import LSTSQRegression, RRegression, LinearClassification
 from audio_preprocessing.io import select_stimuli
-
-
-def process_ema(ema_feats:dict):
-    """
-    """
-    mask = np.ones(14, dtype=bool)
-    mask[[12]] = False
-    for f in ema_feats:
-        temp = ema_feats[f]
-        temp = temp[:,mask]
-        ema_feats[f] = temp
-
-    return ema_feats
-
-def align_times(feats, times):
-    features = {}
-    for s in list(feats.keys()):
-        if s == 'weights':
-            continue
-        f = feats[s]
-        t = times[s]
-        sort_i = np.argsort(t, axis=0)[:,0]
-        f = f[sort_i,:]
-        t = t[sort_i,:]
-        features[s] = {'features': f, 'times': t}
-    return features
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -87,6 +61,9 @@ if __name__ == "__main__":
                             help="specify if you want to zscore before running regression.")
     model_args.add_argument("--scoring", type=str)
     model_args.add_argument("--metric_type", type=str)
+    model_args.add_argument("--cv_splits", type=int, default=10)
+    model_args.add_argument("--n_boots", type=int, default=20)
+    model_args.add_argument("--min_type", type=int, default=1)
     data_args = parser.add_argument_group('data', 'data splitting related args')
     data_args.add_argument("--split", action='store_true')
     data_args.add_argument("--split_path", type=str)
@@ -115,47 +92,49 @@ if __name__ == "__main__":
     stimulus_paths = collections.OrderedDict(sorted(stimulus_paths.items(), key=lambda x: x[0]))
     stimulus_names = list(stimulus_paths.keys())
     
+    ## LOAD IN FEATURES
     #print(cci_features)
-    feats1 = load_features(args.feat_dir1, cci_features, args.recursive, ignore_str='times')
+    feats1 = load_features(args.feat_dir1, args.feat1_type, cci_features, args.recursive, ignore_str='times')
     if args.feat1_times is None:
         args.feat1_times = args.feat_dir1
-    feat1_times = load_features(args.feat1_times, cci_features, args.recursive, search_str='times')
-    #print(feats1)
-    feats1 = split_features(feats1)
-    #print(feats1)
-    feat1_times = split_features(feat1_times)
-    if args.feat1_type == 'ema':
-        feats1 = process_ema(feats1)
+    feat1_times = load_features(args.feat1_times, 'times', cci_features, args.recursive, search_str='times')
+
     aligned_feats1 = align_times(feats1, feat1_times)
 
-    if args.function != 'clf':
-        feats2 = load_features(args.feat_dir2, cci_features, args.recursive, ignore_str='times')
+    if args.feat2_type not in ['word', 'phone']:
+        feats2 = load_features(args.feat_dir2, args.feat2_type, cci_features, args.recursive, ignore_str='times')
         if args.feat2_times is None:
             args.feat2_times = args.feat_dir2
-        feat2_times = load_features(args.feat2_times, cci_features, args.recursive, search_str='times')
-        feats2 = split_features(feats2)
-        feat2_times = split_features(feat2_times)
-        if args.feat2_type == 'ema':
-            feats2 = process_ema(feats2)
+        feat2_times = load_features(args.feat2_times,'times', cci_features, args.recursive, search_str='times')
         aligned_feats2 = align_times(feats2, feat2_times)
     else:
-        assert args.feat2_type in ['word', 'phone']
-        print(f'{args.feat2_type} Classification')
-        
         if args.feat2_type == 'phone':
-            identity = phoneIdentity(stimulus_names, dir=args.feat_dir2, cci_features=cci_features, recursive=args.recursive, overwrite=args.overwrite)
+            identity = phoneIdentity(stimulus_names, phone_dir=args.feat_dir2, cci_features=cci_features, recursive=args.recursive, overwrite=args.overwrite)
         else:
-            identity = wordIdentity(fnames=stimulus_names,dir=args.feat_dir2, cci_features=cci_features, pretrained_path='./audio_features/data/english1000sm.hf5', recursive=args.recursive, overwrite=args.overwrite)
+            identity = wordIdentity(fnames=stimulus_names,word_dir=args.feat_dir2, cci_features=cci_features, pretrained_path='./audio_features/data/english1000sm.hf5', recursive=args.recursive, overwrite=args.overwrite)
 
-        n1, ne2 = identity.align_features(aligned_feats1)
-        seqs = identity.get_seqs()
-        v = identity.get_features()
+        save_dir = Path(args.feat_dir2) / f'aligned_{args.feat1_type}'
+        n1, n2 = identity.align_features(aligned_feats1, save_dir)
+
+        if args.min_type == 1:
+            temp = n1
+        elif args.min_type == 2:
+            temp = n2
+        else:
+            raise NotImplementedError("Only compatible with min_type 1 and 2")
+        
+        if args.function == 'clf':
+            aligned_feats1 = {'features': temp['original_data'], 'times':temp['times']}
+            aligned_feats2 = {'features': temp['identity_targets'], 'times': temp['times']}
+        else:
+            aligned_feats1 = {'features': temp['original_data'], 'times':temp['times']}
+            aligned_feats2 = {'features': temp['reg_targets'], 'times': temp['times']}
     
     ################# DEBUG #############################################
     
-    save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}')
-    if args.zscore:
-            save_path = save_path / 'zscore' 
+    save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}_zscore{args.zscore}')
+    if args.function == 'clf':
+        save_path = save_path / f'identity_v{args.min_type}' 
     if cci_features is None:
         save_path = args.out_dir / save_path
         local_path = None
@@ -176,18 +155,6 @@ if __name__ == "__main__":
         splits = [None]    
     #print('localpath', local_path) # DEBUG
     ###########################################################################
-    
-    if args.function == 'clf':
-        assert args.feat2_type in ['word', 'phone']
-        print(f'{args.feat2_type} Classification')
-        
-        if args.feat2_type == 'phone':
-            identity = phoneIdentity(stimulus_names, dir=save_path / 'phone_identity', cci_features=cci_features, recursive=args.recursive, save=True)
-        else:
-            identity = wordIdentity(fnames=stimulus_names, pretrained_path='./audio_features/data/english1000sm.hf5')
-
-        seqs = identity.get_seqs()
-        v = identity.get_features()
         
     for i in range(len(splits)):
         s = splits[i]
@@ -223,6 +190,8 @@ if __name__ == "__main__":
                                     iv_type=args.feat1_type,
                                     dv=train_feats2,
                                     dv_type=args.feat2_type,
+                                    n_splits=args.cv_splits,
+                                    n_repeats=args.nboots,
                                     zscore=args.zscore,
                                     scoring=args.scoring,
                                     cci_features=cci_features,
@@ -234,12 +203,9 @@ if __name__ == "__main__":
                 regressor.calculate_correlations(test_feats1[k], test_feats2[k], k)
     
         elif args.function == 'clf':
-            raise NotImplementedError('Classifier not implemented completely. Need to sort out train/val/test split information')
-            downsampled_feats = downsample_features(aligned_feats1, seqs)
-
-            classifier = LinearClassification(iv=downsampled_feats,
+            classifier = LinearClassification(iv=train_feats1,
                                             iv_type=args.feat1_type,
-                                            dv=v,
+                                            dv=train_feats2,
                                             dv_type=args.identity_type,
                                             metric_type=args.metric_type,
                                             save_path=new_path,
@@ -249,13 +215,12 @@ if __name__ == "__main__":
                                             overwrite=args.overwrite,
                                             local_path=local_path)
 
-            for s in tqdm(stimulus_names):
-                classifier.score(downsampled_feats[s], v[s], s)
+            for k in tqdm(stimulus_names):
+                classifier.score(test_feats1[k], test_feats2[k], k)
 
         #print('pause')
-      
-
-
+        elif args.function == 'extract':
+            print('Finished extraction')
         else:
             raise NotImplementedError(f'{args.function} is not implemented')
 

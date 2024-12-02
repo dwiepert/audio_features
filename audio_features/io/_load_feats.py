@@ -12,11 +12,27 @@ from typing import Union
 ##third-party
 import numpy as np
 
-def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool=False, ignore_str:Union[str,list]=None,search_str:Union[str,list]=None):
+##local
+from ._split_feats import split_features
+
+def _process_ema(ema_feats:dict):
+    """
+    """
+    mask = np.ones(14, dtype=bool)
+    mask[[12]] = False
+    for f in ema_feats:
+        temp = ema_feats[f]
+        temp = temp[:,mask]
+        ema_feats[f] = temp
+
+    return ema_feats
+
+def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=None, recursive:bool=False, ignore_str:Union[str,list]=None,search_str:Union[str,list]=None):
     """
     Load features
 
-    :param feature dir: str/Path object, points to directory with feature dirs
+    :param feature_dir: str/Path object, points to directory with feature dirs
+    :param feature_type: str, type of feature
     :param cci_features: cotton candy bucket
     :param recursive: bool, indicates whether to load features recursively
     :param ignore_str: str, string pattern to ignore when loading features
@@ -79,7 +95,11 @@ def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool
             features[f] = l[key]
     
     features['path_list'] = paths
-    return features
+
+    if feature_type == 'ema':
+        _process_ema(features)
+
+    return split_features(features)
 
 
 

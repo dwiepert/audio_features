@@ -34,11 +34,12 @@ class RRegression:
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.logspace(-5,2,num=10), zscore:bool=True,
+    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.logspace(-5,2,num=10), n_splits:int=10, n_repeats:int=20, zscore:bool=True,
                  scoring:str='neg_mean_absolute_error',cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
          self.iv_type = iv_type
          self.dv_type = dv_type
-    
+         self.n_splits = n_splits
+         self.n_repeats = n_repeats
          self.fnames = list(iv.keys())
          self.alphas = alphas
          self.scoring = scoring
@@ -49,9 +50,9 @@ class RRegression:
          self._check_rows()
     
          #TODO: some kind of input to understand how to break apart the concatenated information? or concatenate in here?
-         #if zscore:
-         #    self.iv = _zscore(self.iv)
-         #    self.dv = _zscore(self.dv)
+         if zscore:
+            self.iv = _zscore(self.iv)
+            self.dv = _zscore(self.dv)
     
          self.save_path=Path(save_path)
          if local_path is None or self.cci_features is None:
@@ -107,8 +108,8 @@ class RRegression:
         for f in self.fnames:
             temp = feat[f]
             n = temp['features']
-            if self.zscore:
-                n = _zscore(n)
+            #if self.zscore:
+            #    n = _zscore(n)
             t = temp['times']
             if concat is None:
                 concat = n 
@@ -232,7 +233,7 @@ class RRegression:
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
 
-        f = feats['features']
+        f = _zscore(feats['features'])
         t = feats['times']
         rf = ref_feats['features']
         rt = ref_feats['times']

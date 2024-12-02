@@ -238,8 +238,8 @@
                 "--feat_dir1=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
                 "--feat1_times=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/",
                 "--feat1_type=wavlm-large.9",
-                "--feat_dir2=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/word_identity",
-                "--feat2_type=word",
+                "--feat_dir2=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/phone_identity",
+                "--feat2_type=phone",
                 "--stimulus_dir=/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
                 "--out_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/outputs",
@@ -250,8 +250,8 @@
                 "3",
                 "4",
                 "5",
-                "--function=clf",
-                "--metric_type=accuracy"
+                "--function=extract",
+                "--overwrite"
             ]
         },
     ]

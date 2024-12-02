@@ -42,9 +42,9 @@ class LSTSQRegression:
         self._check_rows()
 
         #TODO: some kind of input to understand how to break apart the concatenated information? or concatenate in here?
-        #if zscore:
-        #    self.iv = _zscore(self.iv)
-        #    self.dv = _zscore(self.dv)
+        if zscore:
+           self.iv = _zscore(self.iv)
+           self.dv = _zscore(self.dv)
 
         self.save_path=Path(save_path)
         if local_path is None or self.cci_features is None:
@@ -94,8 +94,8 @@ class LSTSQRegression:
         for f in self.fnames:
             temp = feat[f]
             n = temp['features']
-            if self.zscore: 
-                n = _zscore(n) #ZSCPORE BY FEATURE
+            #if self.zscore: 
+            #    n = _zscore(n) #ZSCPORE BY FEATURE
 
             t = temp['times']
             if concat is None:
@@ -196,7 +196,7 @@ class LSTSQRegression:
                 return 
         
         #assert self.wt is not None, 'Regression has not been run yet. Please do so.'
-        f = feats['features']
+        f = _zscore(feats['features'])
         t = feats['times']
         rf = ref_feats['features']
         rt = ref_feats['times']
