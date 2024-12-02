@@ -134,7 +134,7 @@ if __name__ == "__main__":
     
     ## SAVING
     save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}_zscore{args.zscore}')
-    if 'clf' in args.function:
+    if args.feat2_type in ['word','phone']:
         save_path = save_path / f'identity_v{args.min_type}' 
     if cci_features is None:
         save_path = args.out_dir / save_path
