@@ -74,7 +74,7 @@ class phoneIdentity:
         for story in fnames:
             olddata = [ph.upper().strip("0123456789") for ph in self.phonseqs[story].data]
             olddata = np.array(
-                [ph.strip(' ') for ph in self.phonseqs[story].data])
+                [ph.strip(' ') for ph in olddata])
             ph_2_art = self._ph_to_articulate(ds=olddata, ph_2_art=self.artdict)
             arthistseq = self._histogram_articulates(ds=ph_2_art, data=self.phonseqs[story])
             self.phone_identity[story] = {'original_data': olddata, 'feature_data': arthistseq[0], 'times': arthistseq[2]}
@@ -108,7 +108,6 @@ class phoneIdentity:
                 self.vocab = json.load(f)
         else:
             self.vocab = {}
-            total = 0
             i = 0
             for s in self.fnames:
                 # print('remove later')
@@ -118,11 +117,9 @@ class phoneIdentity:
                     #print(p)
                     p = p.strip(" ")
                     if p not in self.vocab:
-                        total += 1
                         if p not in _bad_words:
                             self.vocab[p] = i
                             i += 1
-            print(f'total before filtering: {total}')
             print(f'total after filtering: {i}')
 
             # for p in self.vocab:
