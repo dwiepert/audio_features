@@ -15,30 +15,34 @@ library(reticulate)
 np <- import("numpy")
 
 read_split <- function(split_dir){
-  avg_corr <- 0
-  count <- 0
+  #avg_corr <- 0
+  #count <- 0
   files <- list.files(path=split_dir, pattern='npz', full.names=TRUE)
-  
+  all_corrs <- c()
   for (i in 1:length(files)){
     corrs <- data.frame(np$load(files[i])['arr_0']) %>% na.omit()
     colnames(corrs) <- c("x")
-    m <- mean(as.numeric(corrs$x))
-    print(m)
-    avg_corr <- avg_corr + m
-    count <- count + 1
+    #m <- mean(as.numeric(corrs$x))
+    #print(m)
+    #avg_corr <- avg_corr + m
+    #count <- count + 1
+    all_corrs <- c(all_corrs, as.numeric(corrs$x))
   }
-  avg_corr <- avg_corr / count
-  return(avg_corr)
+  #avg_corr <- avg_corr / count
+  return(all_corrs)
 }
 
 read_feat <- function(split_list){
-  avg_corr <- 0
-  count <- 0
-  
+  #avg_corr <- 0
+  #count <- 0
+  all_corrs <- c()
+  split_corrs <- list(c())
   for (i in 1:length(split_list)){
     out <- read_split(split_list[i])
-    avg_corr <- avg_corr + out
-    count <- count + 1
+    #avg_corr <- avg_corr + out
+    #count <- count + 1
+    all_corrs <- c(all_corrs, out)
+    split_corrs <- list(c(split_corrs, list(out)))
   }
   
   avg_corr <- avg_corr / count

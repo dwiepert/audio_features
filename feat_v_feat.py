@@ -87,7 +87,6 @@ if __name__ == "__main__":
                             help="specify if you want to zscore before running regression.")
     model_args.add_argument("--scoring", type=str)
     model_args.add_argument("--metric_type", type=str)
-    model_args.add_argument("--identity_type", type=str, help='Specify whether classifying phones or word sequences')
     data_args = parser.add_argument_group('data', 'data splitting related args')
     data_args.add_argument("--split", action='store_true')
     data_args.add_argument("--split_path", type=str)
@@ -139,6 +138,18 @@ if __name__ == "__main__":
         if args.feat2_type == 'ema':
             feats2 = process_ema(feats2)
         aligned_feats2 = align_times(feats2, feat2_times)
+    else:
+        assert args.feat2_type in ['word', 'phone']
+        print(f'{args.feat2_type} Classification')
+        
+        if args.feat2_type == 'phone':
+            identity = phoneIdentity(stimulus_names, dir=args.feat_dir2, cci_features=cci_features, recursive=args.recursive, overwrite=args.overwrite)
+        else:
+            identity = wordIdentity(fnames=stimulus_names,dir=args.feat_dir2, cci_features=cci_features, pretrained_path='./audio_features/data/english1000sm.hf5', recursive=args.recursive, overwrite=args.overwrite)
+
+        n1, ne2 = identity.align_features(aligned_feats1)
+        seqs = identity.get_seqs()
+        v = identity.get_features()
     
     ################# DEBUG #############################################
     
@@ -166,17 +177,32 @@ if __name__ == "__main__":
     #print('localpath', local_path) # DEBUG
     ###########################################################################
     
+    if args.function == 'clf':
+        assert args.feat2_type in ['word', 'phone']
+        print(f'{args.feat2_type} Classification')
+        
+        if args.feat2_type == 'phone':
+            identity = phoneIdentity(stimulus_names, dir=save_path / 'phone_identity', cci_features=cci_features, recursive=args.recursive, save=True)
+        else:
+            identity = wordIdentity(fnames=stimulus_names, pretrained_path='./audio_features/data/english1000sm.hf5')
+
+        seqs = identity.get_seqs()
+        v = identity.get_features()
+        
     for i in range(len(splits)):
         s = splits[i]
         if s is None:
             train_feats1 = aligned_feats1
-            train_feats2 = aligned_feats2
             test_feats1 = aligned_feats1
-            test_feats2 = aligned_feats2
+
+            if args.function != 'clf':
+                train_feats2 = aligned_feats2
+                test_feats2 = aligned_feats2
         else:
             new_path = save_path/f'split{i}'
             train_feats1, val_feats1, test_feats1 = splitter.split_features(aligned_feats1, s)
-            train_feats2, val_feats2, test_feats2 = splitter.split_features(aligned_feats2, s)
+            if args.function != 'clf':
+                train_feats2, val_feats2, test_feats2 = splitter.split_features(aligned_feats2, s)
 
         if args.function == 'lstsq':          
             print('Saving regression results to:', save_path)
@@ -208,17 +234,6 @@ if __name__ == "__main__":
                 regressor.calculate_correlations(test_feats1[k], test_feats2[k], k)
     
         elif args.function == 'clf':
-            assert args.identity_type in ['word', 'phone']
-            print(f'{args.identity_type} Classification')
-            
-            if args.identity_type == 'phone':
-                identity = phoneIdentity(stimulus_names)
-            else:
-                identity = wordIdentity(fnames=stimulus_names, pretrained_path='./audio_features/data/english1000sm.hf5')
-
-            seqs = identity.get_seqs()
-            v = identity.get_features()
-
             raise NotImplementedError('Classifier not implemented completely. Need to sort out train/val/test split information')
             downsampled_feats = downsample_features(aligned_feats1, seqs)
 

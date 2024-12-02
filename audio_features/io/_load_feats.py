@@ -12,7 +12,7 @@ from typing import Union
 ##third-party
 import numpy as np
 
-def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool=False, ignore_str:str=None,search_str:str=None):
+def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool=False, ignore_str:Union[str,list]=None,search_str:Union[str,list]=None):
     """
     Load features
 
@@ -23,6 +23,7 @@ def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool
     :param search_str: str, string pattern to search for when loading features
     :param features: loaded feature dict
     """
+
     feature_dir = Path(feature_dir)
     if cci_features is None:
         if recursive:
@@ -37,9 +38,36 @@ def load_features(feature_dir:Union[str,Path], cci_features=None, recursive:bool
         paths = [f for f in all if f.parent==feature_dir]
 
     if ignore_str is not None:
-        paths = [f for f in paths if ignore_str not in str(f)] #don't load times files
+        if isinstance(ignore_str, list):
+            new_paths = []
+            for f in paths:
+                include = True
+                for s in ignore_str:
+                    if s in str(f):
+                        include = False
+                if include:
+                    new_paths.append(f)
+
+            paths=new_paths
+        else:
+            paths = [f for f in paths if ignore_str not in str(f)] #don't load times files
+
     if search_str is not None:
-        paths = [f for f in paths if search_str in str(f)]
+        if isinstance(search_str, list):
+            new_paths = []
+            
+            for f in paths:
+                include = False
+                for s in ignore_str:
+                    if s in str(f):
+                        include = True
+                if include:
+                    new_paths.append(f)
+
+            paths=new_paths
+        else:
+            paths = [f for f in paths if search_str in str(f)]
+
 
     features = {}
     for f in paths:
