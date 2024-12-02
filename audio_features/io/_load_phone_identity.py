@@ -186,7 +186,8 @@ class phoneIdentity:
 
     def align_features(self, features, save_dir):
         save_dir = Path(save_dir)
-        if not self.overwrite:
+
+        if not self.overwrite and save_dir.exists():
             out1, out2 = self._load_aligned(save_dir)
 
             skip = True
@@ -198,6 +199,7 @@ class phoneIdentity:
                     skip = False
 
             if skip:
+                print('Skipping')
                 return out1, out2
             
         new_feats1 = {}
