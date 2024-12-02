@@ -2,7 +2,7 @@
 Run Least squares regression
 
 Author(s): Daniela Wiepert
-Last Modified: 11/14/2024
+Last Modified: 12/02/2024
 """
 #IMPORTS
 ##built-in
@@ -16,7 +16,7 @@ import numpy as np
 
 ##local
 from database_utils.functions import zscore as _zscore
-
+from database_utils.functions import unzscore 
 class LSTSQRegression:
     """
     :param iv: dict, independent variable(s), keys are stimulus names, values are array like features
@@ -43,8 +43,8 @@ class LSTSQRegression:
 
         #TODO: some kind of input to understand how to break apart the concatenated information? or concatenate in here?
         if zscore:
-           self.iv = _zscore(self.iv)
-           self.dv = _zscore(self.dv)
+           self.iv, self.iv_unz = _zscore(self.iv, return_unzvals=True)
+           self.dv, self.dv_unz = _zscore(self.dv, return_unzvals=True)
 
         self.save_path=Path(save_path)
         if local_path is None or self.cci_features is None:
@@ -204,6 +204,8 @@ class LSTSQRegression:
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
         f = f.astype(self.wt.dtype)
         pred = f @ self.wt 
+        pred = unzscore(pred, self.dv_unz)
+
         r = np.subtract(pred, rf)
 
         if fname not in self.result_paths['residuals']:

@@ -49,10 +49,9 @@ class RRegression:
     
          self._check_rows()
     
-         #TODO: some kind of input to understand how to break apart the concatenated information? or concatenate in here?
          if zscore:
-            self.iv = _zscore(self.iv)
-            self.dv = _zscore(self.dv)
+            self.iv, self.iv_unz = _zscore(self.iv, return_unzvals=True)
+            self.dv, self.dv_unz = _zscore(self.dv,return_unzvals=True)
     
          self.save_path=Path(save_path)
          if local_path is None or self.cci_features is None:
@@ -70,8 +69,8 @@ class RRegression:
          self.config = {
              'iv_type': self.iv_type,'iv_shape': self.iv.shape, 'iv_rows': self.iv_rows, 
              'dv_type': self.dv_type, 'dv_shape': self.dv.shape, 'dv_rows':self.dv_rows, 
-             'alphas': self.alphas.tolist(), 'scoring':self.scoring,
-             'train_fnames': self.fnames, 'overwrite': self.overwrite
+             'alphas': self.alphas.tolist(), 'scoring':self.scoring, 'n_splits': self.n_splits,
+             'n_repeats': self.n_repeats, 'train_fnames': self.fnames, 'overwrite': self.overwrite
          }
     
          os.makedirs(self.local_path, exist_ok=True)
@@ -233,7 +232,7 @@ class RRegression:
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
 
-        f = _zscore(feats['features'])
+        f, f_unz = _zscore(feats['features'], return_unzvals=True)
         t = feats['times']
         rf = ref_feats['features']
         rt = ref_feats['times']

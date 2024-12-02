@@ -9,16 +9,14 @@ Last modified: 11/27/2024
 #built-in
 import argparse
 import collections
-import os
 from pathlib import Path
 
 #third-party
 import cottoncandy as cc
-import numpy as np
 from tqdm import tqdm
 
 #local
-from audio_features.io import DatasetSplitter, load_features, split_features, phoneIdentity, wordIdentity, downsample_features, align_times
+from audio_features.io import DatasetSplitter, load_features, phoneIdentity, wordIdentity, align_times
 from audio_features.functions import LSTSQRegression, RRegression, LinearClassification
 from audio_preprocessing.io import select_stimuli
 
@@ -130,8 +128,7 @@ if __name__ == "__main__":
             aligned_feats1 = {'features': temp['original_data'], 'times':temp['times']}
             aligned_feats2 = {'features': temp['reg_targets'], 'times': temp['times']}
     
-    ################# DEBUG #############################################
-    
+    ## SAVING
     save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}_zscore{args.zscore}')
     if args.function == 'clf':
         save_path = save_path / f'identity_v{args.min_type}' 
@@ -142,6 +139,7 @@ if __name__ == "__main__":
         local_path = args.out_dir / save_path
     print('Saving results to:', save_path)
 
+    ## GENERATE SPLITS
     if args.split:
         if args.split_path is not None: 
             args.split_path = Path(args.split_path)
@@ -157,6 +155,7 @@ if __name__ == "__main__":
     ###########################################################################
         
     for i in range(len(splits)):
+        ## SPLIT FEATURES
         s = splits[i]
         if s is None:
             train_feats1 = aligned_feats1
@@ -172,12 +171,19 @@ if __name__ == "__main__":
                 train_feats2, val_feats2, test_feats2 = splitter.split_features(aligned_feats2, s)
 
         if args.function == 'lstsq':          
+            ## EXTRACT RESIDUALS
             print('Saving regression results to:', save_path)
             print('localpath', local_path) # DEBUG
-            regressor = LSTSQRegression(iv=train_feats1, iv_type=args.feat1_type, dv=train_feats2, dv_type=args.feat2_type,
-                                        save_path=new_path, zscore=args.zscore, cci_features=cci_features, overwrite=args.overwrite,
+            regressor = LSTSQRegression(iv=train_feats1,
+                                        iv_type=args.feat1_type, 
+                                        dv=train_feats2, 
+                                        dv_type=args.feat2_type,
+                                        save_path=new_path, 
+                                        zscore=args.zscore, 
+                                        cci_features=cci_features, 
+                                        overwrite=args.overwrite,
                                         local_path=local_path)
-            
+        
 
             for k in tqdm(list(test_feats1.keys())):
                 regressor.extract_residuals(test_feats1[k], test_feats2[k], k)
@@ -193,7 +199,6 @@ if __name__ == "__main__":
                                     n_splits=args.cv_splits,
                                     n_repeats=args.nboots,
                                     zscore=args.zscore,
-                                    scoring=args.scoring,
                                     cci_features=cci_features,
                                     overwrite=args.overwrite,
                                     local_path=local_path,
