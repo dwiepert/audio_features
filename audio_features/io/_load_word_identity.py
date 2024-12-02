@@ -7,6 +7,7 @@ Last modified: 11/28/2024
 #IMPORTS
 ##built-in
 import os
+import json
 import time
 from typing import List
 from pathlib import Path
@@ -41,7 +42,7 @@ class wordIdentity:
         else:
             self._full_load(self.fnames)
         #if self.cci_features is not None or not self.word_dir.exists():
-        self._word_to_onehot()
+        self._word_to_ind()
 
     def _load_from_bucket(self):
         new_fnames = []
@@ -89,22 +90,39 @@ class wordIdentity:
         for story in fnames:
             self.word_identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
 
-    def _word_to_onehot(self):
-        self.vocab = {}
-        i = 0
-        for s in self.fnames:
-            pi = self.word_identity[s]['original_data']
-            for p in pi:
-                #print(p)
-                p = p.strip(" ")
-                if p not in self.vocab and p not in _bad_words:
-                    self.vocab[p] = i
-                    i += 1
-        for p in self.vocab:
-            temp = self.vocab[p]
-            one_hot = np.zeros((len(self.vocab)))
-            one_hot[temp] = 1
-            self.vocab[p] = one_hot
+    def _word_to_ind(self):
+        vdir = self.word_dir / 'vocab.json'
+        if vdir.exists():
+            with open(str(vdir), 'r') as f:
+                self.vocab = json.load(f)
+        else:
+            self.vocab = {}
+            total = 0
+            i = 0
+            for s in self.fnames:
+                print('remove later')
+                if s in self.word_identity:
+                    pi = self.word_identity[s]['original_data']
+                    for p in pi:
+                        #print(p)
+                        p = p.strip(" ")
+                        if p not in self.vocab:
+                            total += 1
+                            if p not in _bad_words:
+                                self.vocab[p] = i
+                                i += 1
+            print(f'total before filtering: {total}')
+            print(f'total after filtering: {i}')
+
+            # for p in self.vocab:
+            #     temp = self.vocab[p]
+            #     one_hot = np.zeros((i))
+            #     one_hot[temp] = 1
+            #     self.vocab[p] = one_hot
+            
+            os.makedirs(self.word_dir, exist_ok=True)
+            with open(str(vdir), 'w') as f:
+                json.dump(self.vocab, f)
 
     def _load_aligned(self, save_dir):
         p1 = load_features(save_dir, 'word',self.cci_features, self.recursive, search_str='_downsampled1')

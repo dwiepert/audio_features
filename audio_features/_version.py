@@ -1,4 +1,4 @@
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 #change log:
 # 0.0.0: first version
@@ -12,3 +12,4 @@ __version__ = '0.4.0'
 # 0.3.3: phone identity loading added
 # 0.3.4: feature downsampling
 # 0.4.0: new word/phone identity process
+# 0.4.1: classification debugged

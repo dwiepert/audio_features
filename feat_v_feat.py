@@ -121,7 +121,7 @@ if __name__ == "__main__":
         else:
             raise NotImplementedError("Only compatible with min_type 1 and 2")
         
-        if args.function == 'clf':
+        if args.function == 'multiclass_clf':
             aligned_feats1 = align_times(temp['features'], temp['times'])
             aligned_feats2 = align_times(temp['identity_targets'], temp['times'])
         else:
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     
     ## SAVING
     save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}_zscore{args.zscore}')
-    if args.function == 'clf':
+    if 'clf' in args.function:
         save_path = save_path / f'identity_v{args.min_type}' 
     if cci_features is None:
         save_path = args.out_dir / save_path
@@ -170,8 +170,7 @@ if __name__ == "__main__":
         else:
             new_path = save_path/f'split{i}'
             train_feats1, val_feats1, test_feats1 = splitter.split_features(aligned_feats1, s)
-            if args.function != 'clf':
-                train_feats2, val_feats2, test_feats2 = splitter.split_features(aligned_feats2, s)
+            train_feats2, val_feats2, test_feats2 = splitter.split_features(aligned_feats2, s)
 
         if args.function == 'lstsq':          
             ## EXTRACT RESIDUALS
@@ -210,15 +209,15 @@ if __name__ == "__main__":
             for k in tqdm(list(test_feats1.keys())):
                 regressor.calculate_correlations(test_feats1[k], test_feats2[k], k)
     
-        elif args.function == 'clf':
+        elif 'clf' in args.function:
             classifier = LinearClassification(iv=train_feats1,
                                             iv_type=args.feat1_type,
                                             dv=train_feats2,
-                                            dv_type=args.identity_type,
+                                            dv_type=args.feat2_type,
                                             metric_type=args.metric_type,
+                                            classification_type=args.function,
                                             save_path=new_path,
                                             zscore=args.zscore,
-                                            scoring=args.scoring,
                                             cci_features=cci_features,
                                             overwrite=args.overwrite,
                                             local_path=local_path)

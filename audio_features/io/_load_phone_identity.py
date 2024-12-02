@@ -7,6 +7,7 @@ Last modified: 11/28/2024
 #IMPORTS
 ##built-in
 import os
+import json
 import time
 from typing import List
 from pathlib import Path
@@ -44,7 +45,7 @@ class phoneIdentity:
         else:
             self._full_load(self.fnames)
 
-        self._phone_to_onehot()
+        self._phone_to_ind()
     
     def _load_from_bucket(self):
         ###TODO CHECK IF CCI FEATURES PATH EXISTS
@@ -100,24 +101,39 @@ class phoneIdentity:
             if story in olddata and story in newdata and story in times:
                 self.phone_identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
     
-    def _phone_to_onehot(self):
-        self.vocab = {}
-        i = 0
-        for s in self.fnames:
-            print('remove later')
-            if s in self.phone_identity:
-                pi = self.phone_identity[s]['original_data']
-                for p in pi:
-                    #print(p)
-                    p = p.strip(" ")
-                    if p not in self.vocab and p not in _bad_words:
-                        self.vocab[p] = i
-                        i += 1
-        for p in self.vocab:
-            temp = self.vocab[p]
-            one_hot = np.zeros((len(self.vocab)))
-            one_hot[temp] = 1
-            self.vocab[p] = one_hot
+    def _phone_to_ind(self):
+        vdir = self.phone_dir / 'vocab.json'
+        if vdir.exists():
+            with open(str(vdir), 'r') as f:
+                self.vocab = json.load(f)
+        else:
+            self.vocab = {}
+            total = 0
+            i = 0
+            for s in self.fnames:
+                print('remove later')
+                if s in self.phone_identity:
+                    pi = self.phone_identity[s]['original_data']
+                    for p in pi:
+                        #print(p)
+                        p = p.strip(" ")
+                        if p not in self.vocab:
+                            total += 1
+                            if p not in _bad_words:
+                                self.vocab[p] = i
+                                i += 1
+            print(f'total before filtering: {total}')
+            print(f'total after filtering: {i}')
+
+            # for p in self.vocab:
+            #     temp = self.vocab[p]
+            #     one_hot = np.zeros((i))
+            #     one_hot[temp] = 1
+            #     self.vocab[p] = one_hot
+            
+            os.makedirs(self.phone_dir, exist_ok=True)
+            with open(str(vdir), 'w') as f:
+                json.dump(self.vocab, f)
     
 
     def _ph_to_articulate(self, ds:DataSequence, ph_2_art:dict):

@@ -14,7 +14,8 @@ from typing import Union, List
 
 ##third-party
 import numpy as np
-from sklearn.linear_model import RidgeClassifierCV
+from sklearn.linear_model import RidgeClassifierCV, LogisticRegression
+from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import r2_score, accuracy_score
 from sklearn.model_selection import RepeatedKFold
 
@@ -25,20 +26,21 @@ class LinearClassification:
     """
     Types of scoring https://scikit-learn.org/1.5/modules/model_evaluation.html#scoring-parameter
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, metric_type:str, save_path:Union[str,Path], zscore:bool=True,
-                 alphas:np.ndarray=np.arange(0, 1, 0.01), scoring:str='accuracy', cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
+    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, metric_type:str, save_path:Union[str,Path], classification_type:str='multiclass_clf', zscore:bool=True,
+                       cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
         self.iv_type = iv_type
         self.dv_type = dv_type
         self.overwrite = overwrite
         self.metric_type= metric_type
-        self.alphas = alphas
-        self.scoring = scoring
+        self.classification_type=classification_type
 
         self.fnames = list(iv.keys())
         self.zscore = zscore
-        self.iv, self.iv_rows, self.iv_times = self._process_features(iv, zscore=self.zscore)
-        self.dv, self.dv_rows = self._process_embeddings(dv)
+        self.iv, self.iv_rows, self.iv_times = self._process_features(iv)
+        self.dv, self.dv_rows, self.dv_times = self._process_features(dv)
 
+        if self.zscore:
+            self.iv = _zscore(self.iv)
         print('TODO: make sure dv values are what RidgeClassifierCV expects')
 
         self._check_rows()
@@ -57,7 +59,7 @@ class LinearClassification:
         self.config = {
             'iv_type': self.iv_type,'iv_shape': self.iv.shape, 'iv_rows': self.iv_rows, 
             'dv_type': self.dv_type, 'dv_shape': self.dv.shape, 'dv_rows':self.dv_rows,
-            'alphas': self.alphas.tolist(), 'scoring':self.scoring,
+            'classification_type': self.classification_type,
             'metric_type':self.metric_type, 'train_fnames': self.fnames, 'overwrite': self.overwrite
         }
 
@@ -78,7 +80,7 @@ class LinearClassification:
         self._check_previous()
         self._fit()
 
-    def _process_embeddings(self, feat:dict):
+    def _process_targets(self, feat:dict):
         """
         """
         nrows = {}
@@ -97,7 +99,7 @@ class LinearClassification:
         return concat, nrows
     
 
-    def _process_features(self, feat:dict, zscore:bool):
+    def _process_features(self, feat:dict):
         """
         Concatenate features from separate files into one and maintain information to undo concatenation
         
@@ -113,8 +115,6 @@ class LinearClassification:
         for f in self.fnames:
             temp = feat[f]
             n = temp['features']
-            if zscore: 
-                n = _zscore(n) #ZSCPORE BY FEATURE
 
             t = temp['times']
             if concat is None:
@@ -161,7 +161,7 @@ class LinearClassification:
         if Path(str(self.result_paths['model'])+'.pkl').exists(): self.weights_exist=True
 
         if self.weights_exist and not self.overwrite:
-            with open(str(self.result_paths['model']+'.pkl'), 'r') as f:
+            with open(str(self.result_paths['model'])+'.pkl', 'rb') as f:
                 self.model = pickle.load(f)
         else:
             self.model=None
@@ -174,9 +174,17 @@ class LinearClassification:
             print('Weights already exist and should not be overwritten')
             return
 
-        cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+        self.model = LogisticRegression(random_state=0)
 
-        self.model = RidgeClassifierCV(alphas=self.alphas, cv=cv,scoring=self.scoring)
+        if self.classification_type=='multilabel_clf':
+            self.model = MultiOutputClassifier(self.model)
+        
+
+        #cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+
+        #self.model = RidgeClassifierCV(alphas=self.alphas, cv=cv,scoring=self.scoring)
+        if self.dv.ndim == 2:
+            self.dv = np.argmax(self.dv, axis=1)
         self.model.fit(self.iv, self.dv)
 
         if self.cci_features:
@@ -191,18 +199,23 @@ class LinearClassification:
 
     def score(self, feats, ref_feats, fname):
         if self.cci_features is not None:
-            if self.cci_features.exists_object(self.result_paths['corr'][fname]) and not self.overwrite:
+            if self.cci_features.exists_object(self.result_paths[self.metric_type][fname]) and not self.overwrite:
                 return 
         else:
-            if Path(str(self.result_paths['corr'][fname]) + '.npz').exists() and not self.overwrite:
+            if Path(str(self.result_paths[self.metric_type][fname]) + '.npz').exists() and not self.overwrite:
                 return 
         
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
 
         f = feats['features']
+        if self.zscore:
+            f = _zscore(f)
         t = feats['times']
+
         rf = ref_feats['features']
+        if rf.ndim == 2:
+            rf = np.argmax(rf, axis=1)
         rt = ref_feats['times']
         
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
@@ -212,10 +225,10 @@ class LinearClassification:
 
         #TODO: SCORING
         if self.metric_type == 'accuracy':
-            metric = []
-            for i in range(pred.shape[0]):
-                metric.append(accuracy_score(pred[i,:], rf[i,:]))
-            metric = np.ndarray(metric)
+            metric = np.array([accuracy_score(rf, pred)])
+        else:
+            raise NotImplementedError()
+        
 
         if fname not in self.result_paths[self.metric_type]:
             self.result_paths[self.metric_type][fname] = self.save_path / fname
