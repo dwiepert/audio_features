@@ -112,6 +112,7 @@ if __name__ == "__main__":
             identity = wordIdentity(fnames=stimulus_names,word_dir=args.feat_dir2, cci_features=cci_features, pretrained_path='./audio_features/data/english1000sm.hf5', recursive=args.recursive, overwrite=args.overwrite)
 
         save_dir = Path(args.feat_dir2) / f'aligned_{args.feat1_type}'
+        print(save_dir)
         n1, n2 = identity.align_features(aligned_feats1, save_dir)
 
         if args.min_type == 1:
