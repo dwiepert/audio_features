@@ -100,17 +100,17 @@ class wordIdentity:
             total = 0
             i = 0
             for s in self.fnames:
-                print('remove later')
-                if s in self.word_identity:
-                    pi = self.word_identity[s]['original_data']
-                    for p in pi:
-                        #print(p)
-                        p = p.strip(" ")
-                        if p not in self.vocab:
-                            total += 1
-                            if p not in _bad_words:
-                                self.vocab[p] = i
-                                i += 1
+                # print('remove later')
+                # if s in self.word_identity:
+                pi = self.word_identity[s]['original_data']
+                for p in pi:
+                    #print(p)
+                    p = p.strip(" ")
+                    if p not in self.vocab:
+                        total += 1
+                        if p not in _bad_words:
+                            self.vocab[p] = i
+                            i += 1
             print(f'total before filtering: {total}')
             print(f'total after filtering: {i}')
 

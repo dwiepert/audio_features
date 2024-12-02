@@ -41,7 +41,6 @@ class LinearClassification:
 
         if self.zscore:
             self.iv = _zscore(self.iv)
-        print('TODO: make sure dv values are what RidgeClassifierCV expects')
 
         self._check_rows()
 

@@ -97,9 +97,9 @@ class phoneIdentity:
         newdata = load_features(self.phone_dir, 'phone', self.cci_features, self.recursive, ignore_str=['_phones', '_times'])
         times = load_features(self.phone_dir, 'phone', self.cci_features, self.recursive, search_str='_times')
         for story in fnames:
-            print('REMOVE LATER')
-            if story in olddata and story in newdata and story in times:
-                self.phone_identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
+            #print('REMOVE LATER')
+            #if story in olddata and story in newdata and story in times:
+            self.phone_identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
     
     def _phone_to_ind(self):
         vdir = self.phone_dir / 'vocab.json'
@@ -111,17 +111,17 @@ class phoneIdentity:
             total = 0
             i = 0
             for s in self.fnames:
-                print('remove later')
-                if s in self.phone_identity:
-                    pi = self.phone_identity[s]['original_data']
-                    for p in pi:
-                        #print(p)
-                        p = p.strip(" ")
-                        if p not in self.vocab:
-                            total += 1
-                            if p not in _bad_words:
-                                self.vocab[p] = i
-                                i += 1
+                # print('remove later')
+                # if s in self.phone_identity:
+                pi = self.phone_identity[s]['original_data']
+                for p in pi:
+                    #print(p)
+                    p = p.strip(" ")
+                    if p not in self.vocab:
+                        total += 1
+                        if p not in _bad_words:
+                            self.vocab[p] = i
+                            i += 1
             print(f'total before filtering: {total}')
             print(f'total after filtering: {i}')
 
