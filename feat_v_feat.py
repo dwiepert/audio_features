@@ -197,7 +197,7 @@ if __name__ == "__main__":
                                     dv=train_feats2,
                                     dv_type=args.feat2_type,
                                     n_splits=args.cv_splits,
-                                    n_repeats=args.nboots,
+                                    n_repeats=args.n_boots,
                                     zscore=args.zscore,
                                     cci_features=cci_features,
                                     overwrite=args.overwrite,

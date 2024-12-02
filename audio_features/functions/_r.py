@@ -81,11 +81,16 @@ class RRegression:
             self.result_paths = {'model': self.save_path/'model'}
          else:
             self.result_paths = {'model': self.local_path/'model'}
-         #self.result_paths = {'pcorr': self.save_path/'pcorr'}
+
+         self.result_paths['train_corr'] = {}
          self.result_paths['corr'] = {}
+         self.result_paths['weights'] = self.save_path/'weights'
         
          for f in self.fnames:
-             self.result_paths['corr'][f] = self.save_path / f
+             t1 =self.save_path /'train_correlations'
+             self.result_paths['train_corr'][f] =  t1/f
+             t2 = self.save_path/'test_correlations'
+             self.result_paths['corr'][f] = t2/f
           
          self._check_previous()
          self._fit()
@@ -160,6 +165,22 @@ class RRegression:
         else:
             self.model=None
 
+        # if self.cci_features is not None:
+        #     if self.cci_features.exists_object(str(self.save_path)):
+        #         if self.cci_features.exists_object(str(self.result_paths['weights'])): self.weights_exist=True
+        # else:
+        #     if Path(str(self.result_paths['weights'])+'.npz').exists(): self.weights_exist=True
+
+        # if self.weights_exist and not self.overwrite: 
+        #     if self.cci_features is not None:
+        #         self.wt = self.cci_features.download_raw_array(str(self.result_paths['weights']))
+        #     else:
+        #         temp = np.load(str(self.result_paths['weights'])+'.npz')
+        #         k = list(temp)[0]
+        #         self.wt = temp[k]
+        # else:
+        #     self.wt = None 
+
     def _fit(self):
         """
         Run regression
@@ -168,7 +189,7 @@ class RRegression:
             print('Model already fitted and should not be overwritten')
             return
         # cross-validation
-        cv = RepeatedKFold(n_splits=5, n_repeats=1, random_state=1)
+        cv = RepeatedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=1)
 
         # try to find optimal alpha
         self.model = RidgeCV(alphas=self.alphas, cv=cv, scoring=self.scoring)
@@ -178,19 +199,18 @@ class RRegression:
         #self.trained_model = ridge_reg
 
         # predict
-        #ridge_predict = self.ridge_reg.predict(self.iv)
+        ridge_predict = self.model.predict(self.iv)
 
         # pearson coefficients
-        #correlations = []
-        #for i in range(self.dv.shape[1]):
-        #    corr = np.corrcoef(self.dv[:, i], ridge_predict[:, i])[0, 1]
-        #    correlations.append(corr)
+        correlations = []
+        for i in range(self.dv.shape[0]):
+            corr = np.corrcoef(self.dv[i,:], ridge_predict[i,:])[0, 1]
+            correlations.append(corr)
         
-        # ridge regression solution
-        #self.coefficients = self.ridge_reg.coef_
+         #ridge regression solution
         
         # pearson correlations
-        #self.pearson_coeff = np.array(correlations)
+        self.pearson_coeff = self._unprocess_features(np.expand_dims(np.array(correlations),axis=1),self.dv_rows, self.dv_times)
 
         if self.cci_features:
             print('Model cannot be saved to cci_features. Saving to local path instead')
@@ -202,12 +222,15 @@ class RRegression:
         with open(str(self.result_paths['model'])+'.pkl', 'wb') as file:
             pickle.dump(self.model, file)
             
-        #if self.cci_features:
-        #    self.cci_features.upload_raw_array(self.result_paths['pcorr'], self.pearson_coeff)
+        if self.cci_features:
+            self.cci_features.upload_raw_array(str(self.result_paths['train_corr']), self.pearson_coeff)
+            #self.cci_features.upload_raw_array(str(self.result_paths['weights']), self.wt)
                                            
-       #else:
-        #    os.makedirs(self.save_path, exist_ok=True)
-         #   np.savez_compressed(str(self.result_paths['pcorr'])+'.npz', self.pearson_coeff)
+        else:
+            for story in self.pearson_coeff:
+                os.makedirs(self.result_paths['train_corr'][story], exist_ok=True)
+                np.savez_compressed(str(self.result_paths['train_corr'][story])+'.npz', self.pearson_coeff[story])
+            #np.savez_compressed(str(self.result_paths['weights'])+'.npz', self.wt)
           
     
     def calculate_correlations(self, feats, ref_feats, fname):
@@ -234,7 +257,7 @@ class RRegression:
 
         f, f_unz = _zscore(feats['features'], return_unzvals=True)
         t = feats['times']
-        rf = ref_feats['features']
+        rf = _zscore(ref_feats['features'])
         rt = ref_feats['times']
         
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'

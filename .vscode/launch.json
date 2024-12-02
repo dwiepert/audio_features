@@ -224,8 +224,12 @@
                 "4",
                 "5",
                 "--zscore",
+                "--cv_splits=3",
+                "--n_boots=1",
+                "--min_type=1",
                 "--split",
-                "--split_path=/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/splits/"   
+                "--split_path=/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/splits/",
+                "--overwrite"   
             ]
         },
         {
