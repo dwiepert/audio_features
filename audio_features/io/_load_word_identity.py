@@ -116,8 +116,8 @@ class wordIdentity:
         at2 = load_features(save_dir, 'word', self.cci_features, self.recursive, search_str='_embedtargets2')
         tm2 = load_features(save_dir,  'word',self.cci_features, self.recursive, search_str='_times2')
 
-        out1 = {'features':p1, 'identity_targets': t1, 'embedding_targets':at1, 'times':tm1}
-        out2 = {'features':p2, 'identity_targets': t2, 'embedding_targets':at2, 'times':tm2}
+        out1 = {'features':p1, 'identity_targets': t1, 'reg_targets':at1, 'times':tm1}
+        out2 = {'features':p2, 'identity_targets': t2, 'reg_targets':at2, 'times':tm2}
 
         return out1, out2
 

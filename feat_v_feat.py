@@ -122,10 +122,10 @@ if __name__ == "__main__":
             raise NotImplementedError("Only compatible with min_type 1 and 2")
         
         if args.function == 'clf':
-            aligned_feats1 = {'features': temp['original_data'], 'times':temp['times']}
+            aligned_feats1 = {'features': temp['features'], 'times':temp['times']}
             aligned_feats2 = {'features': temp['identity_targets'], 'times': temp['times']}
         else:
-            aligned_feats1 = {'features': temp['original_data'], 'times':temp['times']}
+            aligned_feats1 = {'features': temp['features'], 'times':temp['times']}
             aligned_feats2 = {'features': temp['reg_targets'], 'times': temp['times']}
     
     ## SAVING
