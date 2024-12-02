@@ -18,10 +18,10 @@ from ._split_feats import split_features
 def _process_ema(ema_feats:dict):
     """
     """
-    if f != 'path_list':
-        mask = np.ones(14, dtype=bool)
-        mask[[12]] = False
-        for f in ema_feats:
+    mask = np.ones(14, dtype=bool)
+    mask[[12]] = False
+    for f in ema_feats:
+        if f != 'path_list':
             temp = ema_feats[f]
             temp = temp[:,mask]
             ema_feats[f] = temp
