@@ -9,6 +9,7 @@ Last Modified: 11/23/2024
 import json
 import os
 from pathlib import Path
+import time
 from typing import Union, List
 
 ##third-party
@@ -194,8 +195,14 @@ class RRegression:
         # try to find optimal alpha
         self.model = RidgeCV(alphas=self.alphas, cv=cv, scoring=self.scoring)
 
+        st = time.time()
         # Fit model with best alpha
         self.model.fit(self.iv, self.dv)
+        et = time.time()
+
+        total = (et-st)/60
+        print(f'Model fit in {total} minutes.')
+
         #self.trained_model = ridge_reg
 
         # predict
