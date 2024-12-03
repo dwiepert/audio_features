@@ -188,6 +188,8 @@ class LinearClassification:
         #cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
 
         #self.model = RidgeClassifierCV(alphas=self.alphas, cv=cv,scoring=self.scoring)
+        print(self.dv.ndim)
+        print(self.dv[:5,:])
         if self.dv.ndim == 2 and self.classification_type=='multiclass_clf':
             self.dv = np.argmax(self.dv, axis=1)
         

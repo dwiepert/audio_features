@@ -45,33 +45,181 @@ read_feat <- function(split_list){
     split_corrs <- list(c(split_corrs, list(out)))
   }
   
-  avg_corr <- avg_corr / count
-  return(avg_corr)
+  #avg_corr <- avg_corr / count
+  return(all_corrs)
 }
 
+get_subdirs <- function(dir, pattern){
+  dirs <- list.dirs(path=dir, full.names=TRUE, recursive=FALSE)
+  dirs <- grep(pattern, dirs, value = TRUE)
+  return (dirs)
+}
+
+get_splits_reg <- function(dirs){
+  var_list <- c()
+  for (i in 1:length(dirs)){
+  r <- dirs[[i]]
+  if (!(r %in% word_dirs)){
+    feature <- strsplit(r[1], "_")[[1]]
+    if (length(feature)==6){
+      type <- strsplit(feature[length(feature)-4], "/")[[1]]
+      type <- type[length(type)]
+    } else if (length(feature)==7){
+    type <- strsplit(feature[length(feature)-5], "/")[[1]]
+    type <- type[length(type)]
+    type <- paste(type, feature[length(feature)-4], sep="_")
+    }
+    feature <- paste(type, feature[length(feature)-3],feature[length(feature)-1], sep="_")
+    splits <- get_subdirs(r, "split*")
+    assign(feature, splits, envir=.GlobalEnv)
+    var_list <- c(var_list, feature)
+  }
+  }
+  return(var_list)
+}
+
+get_splits_word <- function(dirs){
+  var_list <- c()
+  for (i in 1:length(dirs)){
+  r <- dirs[[i]]
+  if (!(r %in% word_dirs)){
+    feature <- strsplit(r[1], "_")[[1]]
+    if (length(feature)==7){
+      type <- strsplit(feature[length(feature)-5], "/")[[1]]
+      type <- type[length(type)]
+    } else if (length(feature)==8){
+    type <- strsplit(feature[length(feature)-6], "/")[[1]]
+    type <- type[length(type)]
+    #type <- paste(type, feature[length(feature)-5], sep="_")
+    }
+    feature <- paste(type,feature[length(feature)-4],feature[length(feature)-2],feature[length(feature)], sep="_")
+    splits <- get_subdirs(r, "split*")
+    assign(feature, splits, envir=.GlobalEnv)
+    var_list <- c(var_list, feature)
+  }
+  }
+  return(var_list)
+}
+
+get_table <- function(varlist, type, feat2, version){
+  keep_vars <- c()
+  
+  for (i in 1:length(varlist)){
+    v <- varlist[i]
+    splitv <- strsplit(v, "_")[[1]]
+    if ((length(splitv) == 4 & splitv[1]=='ridge') | (length(splitv)==5)){
+      if (grepl(type,v,fixed=TRUE) & grepl(feat2,v,fixed=TRUE) & grepl(version,v,fixed=TRUE)){
+        keep_vars <- c(keep_vars, v)
+      }
+    }else{
+      if (grepl(type,v,fixed=TRUE) & grepl(feat2,v,fixed=TRUE)){
+      keep_vars <- c(keep_vars, v)
+      }
+    }
+  }
+  
+  for (i in 1:length(keep_vars)){
+    v <- keep_vars[i]
+    splitv <- strsplit(v,"_")[[1]]
+    
+  }
+}
+
+get_table <- function(varlist){
+  for (i in 1:length(varlist)){
+    v <- varlist[i]
+    splitv <- strsplit(v, "_")[[1]]
+    if (length(splitv)==4){
+      type <- splitv[1]
+      feat1 <- splitv[2]
+      feat2 <- splitv[3]
+      version <- splitv[4]
+    }else if (length(splitv)==3){
+      type <- splitv[1]
+      feat1 <- splitv[2]
+      feat2 <- splitv[3]
+      version <- ''
+    }
+    
+    temp <- get(v)
+    out <- read_feat(temp)
+    tempdf <- data.frame(values=out) %>% mutate(type=type, feat1=feat1, feat2=feat2, version=version)
+    if (!exists('ourvar')){
+      assign('ourvar', tempdf, envir=.GlobalEnv)
+    }else{
+      ourvar <- rbind(ourvar,tempdf)
+    }
+  }
+  return(ourvar)
+}
+```
+
+```{r}
+
+result_dirs <- get_subdirs('/Users/dwiepert/Documents/Grad_School/Huth/data/data/results', '*')
+word_dirs <- grep('word', result_dirs, value=TRUE)
+
+new_word_dirs <- c()
+for (i in 1:length(word_dirs)){
+  sub_dirs <- get_subdirs(word_dirs[i], 'identity*')
+  new_word_dirs <- c(new_word_dirs, sub_dirs)
+}
+
+vars1 <- get_splits_reg(result_dirs)
+vars2 <- get_splits_word(new_word_dirs)
+vars <- append(vars1, vars2)
+
+data <- get_table(vars)
+```
+
+```{r make-plots}
+#non-multiclass 
+ridge <- data %>% filter(type=='ridge', feat2 != 'word') %>% group_by(feat1, feat2)
+ridge_word <- data %>% filter(type=='ridge', feat2 == 'word')
+multiclass <- data %>% filter(type=='multiclass')
+```
+
+```{r}
+
 wlm9_f <- c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/split4')
-wlm9_f_corr <- read_feat(wlm9_f)
+wlm9fc <- read_feat(wlm9_f)
 
 s_f <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_fbank/zscore/split4')
-s_f_corr <- read_feat(s_f)
+sfc <- read_feat(s_f)
 
 l_f <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_fbank/zscore/split4')
-l_f_corr <- read_feat(l_f)
+lfc <- read_feat(l_f)
 
-corrs <- c(wlm9_f_corr, s_f_corr, l_f_corr)
-print(corrs)
+
+f_corrs <- data.frame(wlm9=wlm9fc, s=sfc, l=lfc) 
+f_corrs <- f_corrs%>% pivot_longer(cols=wlm9:l, values_to="corr") %>% mutate(feature='fbank23')
+print(corrs) 
+
+p <- ggplot(f_corrs, aes(factor(name), corr, fill=factor(name))) + geom_boxplot()
 
 
 ### OPENSMILE
 wlm9_o <- c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_opensmile/zscore/split4')
-wlm9_o_corr <- read_feat(wlm9_o)
+wlm9oc <- read_feat(wlm9_o)
 
 s_o <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_sparc_to_opensmile/zscore/split4')
-s_o_corr <- read_feat(s_o)
+soc <- read_feat(s_o)
 
 l_o <-  c('/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split0','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split1','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split2','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split3','/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_lstsq_to_opensmile/zscore/split4')
-l_o_corr <- read_feat(l_o)
+loc <- read_feat(l_o)
 
-corrs <- c(wlm9_o_corr, s_o_corr, l_o_corr)
-print(corrs)
+o_corrs <- data.frame(wlm9=wlm9oc, s=soc, l=loc) 
+o_corrs <- o_corrs%>% pivot_longer(cols=wlm9:l, values_to="corr") %>% mutate(feature='opensmile')
+
+all_corrs <- rbind(f_corrs, o_corrs) %>% mutate(feature=as.factor(feature), name=as.factor(name)) %>% group_by(feature)
+
+
+p <- ggplot(all_corrs, aes(feature, corr, fill=name)) + geom_boxplot()
+p2 <- ggplot(all_corrs, aes(feature, corr, fill=name)) + geom_violin(position="dodge")
+p3 <-  ggplot(all_corrs, aes(name, corr, fill=name)) + geom_violin(position="dodge") + facet_wrap(~feature, nrow=1)
+
+p4 <- ggplot(all_corrs, aes(name, corr, fill=name)) + geom_boxplot() + facet_wrap(~feature, nrow=1)
+
+avg_correlations <- all_corrs %>% ungroup() %>% group_by(name, feature) %>% summarise(mean=mean(corr))
+
 ```
