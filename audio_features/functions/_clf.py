@@ -206,12 +206,13 @@ class LinearClassification:
             pickle.dump(self.scaler, file)
 
     def score(self, feats, ref_feats, fname):
-        if self.cci_features is not None:
-            if self.cci_features.exists_object(self.result_paths[self.metric_type][fname]) and not self.overwrite:
-                return 
-        else:
-            if Path(str(self.result_paths[self.metric_type][fname]) + '.npz').exists() and not self.overwrite:
-                return 
+        if fname in self.result_paths[self.metric_type]:
+            if self.cci_features is not None:
+                if self.cci_features.exists_object(self.result_paths[self.metric_type][fname]) and not self.overwrite:
+                    return 
+            else:
+                if Path(str(self.result_paths[self.metric_type][fname]) + '.npz').exists() and not self.overwrite:
+                    return 
         
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
