@@ -188,7 +188,7 @@ class LinearClassification:
         #cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
 
         #self.model = RidgeClassifierCV(alphas=self.alphas, cv=cv,scoring=self.scoring)
-        if self.dv.ndim == 2:
+        if self.dv.ndim == 2 and self.classification_type=='multiclass_clf':
             self.dv = np.argmax(self.dv, axis=1)
         
         self.model.fit(self.scaler.transform(self.iv), self.dv)
@@ -223,7 +223,7 @@ class LinearClassification:
         t = feats['times']
 
         rf = ref_feats['features']
-        if rf.ndim == 2:
+        if rf.ndim == 2 and self.classification_type=='multiclass_clf':
             rf = np.argmax(rf, axis=1)
         rt = ref_feats['times']
         
