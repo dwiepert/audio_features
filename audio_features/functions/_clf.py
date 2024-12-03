@@ -188,10 +188,11 @@ class LinearClassification:
         #cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
 
         #self.model = RidgeClassifierCV(alphas=self.alphas, cv=cv,scoring=self.scoring)
-        print(self.dv.ndim)
-        print(self.dv[:5,:])
         if self.dv.ndim == 2 and self.classification_type=='multiclass_clf':
-            self.dv = np.argmax(self.dv, axis=1)
+            if self.dv.shape[1] == 1:
+                self.dv = np.squeeze(self.dv)
+            else:
+                self.dv = np.argmax(self.dv, axis=1)
         
         self.model.fit(self.scaler.transform(self.iv), self.dv)
 
@@ -226,7 +227,10 @@ class LinearClassification:
 
         rf = ref_feats['features']
         if rf.ndim == 2 and self.classification_type=='multiclass_clf':
-            rf = np.argmax(rf, axis=1)
+            if rf.shape[1] == 1:
+                rf = np.squeeze(rf)
+            else:
+                rf = np.argmax(rf, axis=1)
         rt = ref_feats['times']
         
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
