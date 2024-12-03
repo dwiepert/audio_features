@@ -15,6 +15,7 @@ from typing import Union, List
 ##third-party
 import numpy as np
 from sklearn.linear_model import RidgeClassifierCV, LogisticRegression
+from sklearn import preprocessing
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import r2_score, accuracy_score
 from sklearn.model_selection import RepeatedKFold
@@ -35,7 +36,7 @@ class LinearClassification:
         self.classification_type=classification_type
 
         self.fnames = list(iv.keys())
-        self.zscore = zscore
+        self.zscore = False
         self.iv, self.iv_rows, self.iv_times = self._process_features(iv)
         self.dv, self.dv_rows, self.dv_times = self._process_features(dv)
 
@@ -172,8 +173,10 @@ class LinearClassification:
             assert self.model is not None, 'Weights do not exist. Loading weights went wrong.'
             print('Weights already exist and should not be overwritten')
             return
+        
+        self.scaler = preprocessing.StandardScaler().fit(self.iv)
 
-        self.model = LogisticRegression(random_state=0)
+        self.model = LogisticRegression(random_state=0, max_iter=1000)
 
         if self.classification_type=='multilabel_clf':
             self.model = MultiOutputClassifier(self.model)
@@ -184,7 +187,8 @@ class LinearClassification:
         #self.model = RidgeClassifierCV(alphas=self.alphas, cv=cv,scoring=self.scoring)
         if self.dv.ndim == 2:
             self.dv = np.argmax(self.dv, axis=1)
-        self.model.fit(self.iv, self.dv)
+        
+        self.model.fit(self.scaler.transform(self.iv), self.dv)
 
         if self.cci_features:
             print('Model cannot be saved to cci_features. Saving to local path instead')
@@ -220,7 +224,7 @@ class LinearClassification:
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
         #TODO:
         f = f.astype(self.model.coef_.dtype)
-        pred = self.model.predict(f)
+        pred = self.model.predict(self.scaler.transform(f))
 
         #TODO: SCORING
         if self.metric_type == 'accuracy':
