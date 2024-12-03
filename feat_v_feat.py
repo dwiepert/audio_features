@@ -223,7 +223,7 @@ if __name__ == "__main__":
                                             overwrite=args.overwrite,
                                             local_path=local_path)
 
-            for k in tqdm(stimulus_names):
+            for k in tqdm(list(test_feats1.keys())):
                 classifier.score(test_feats1[k], test_feats2[k], k)
 
         #print('pause')
