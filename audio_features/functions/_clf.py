@@ -234,7 +234,15 @@ class LinearClassification:
 
         #TODO: SCORING
         if self.metric_type == 'accuracy':
-            metric = np.array([accuracy_score(rf, pred)])
+            metric = accuracy_score(rf, pred)
+            if rf.ndim == 2:
+                by_category = [metric]
+                for j in range(rf.shape[1]):
+                    by_category.append(accuracy_score(rf[:,j]), pred[:,j])
+                   
+                metric = np.array(by_category)
+            else:
+                metric = np.array([metric])
         else:
             raise NotImplementedError()
         
