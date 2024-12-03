@@ -68,9 +68,9 @@ class LinearClassification:
             json.dump(self.config,f)
         
         if self.cci_features is None:
-            self.result_paths = {'model': self.save_path/'model'}
+            self.result_paths = {'model': self.save_path/'model', 'scaler': self.save_path/'scaler'}
         else:
-            self.result_paths = {'model': self.local_path/'model'}
+            self.result_paths = {'model': self.local_path/'model', 'scaler':self.save_path/'scaler'}
         
         self.result_paths[self.metric_type] = {}
 
@@ -158,13 +158,16 @@ class LinearClassification:
         """
         """
         self.weights_exist = False
-        if Path(str(self.result_paths['model'])+'.pkl').exists(): self.weights_exist=True
+        if Path(str(self.result_paths['model'])+'.pkl').exists() and Path(str(self.result_paths['scaler'])+'.pkl').exists(): self.weights_exist=True
 
         if self.weights_exist and not self.overwrite:
             with open(str(self.result_paths['model'])+'.pkl', 'rb') as f:
                 self.model = pickle.load(f)
+            with open(str(self.result_paths['scaler'])+'.pkl', 'rb') as f:
+                self.scaler = pickle.load(f)
         else:
             self.model=None
+            self.scaler=None
     
     def _fit(self):
         """
@@ -196,9 +199,11 @@ class LinearClassification:
             #self.cci_features.upload_raw_array(self.result_paths['models'], self.ridge)
 
         # Save the model to a file using pickle
-        os.makedirs(self.result_paths['model'], exist_ok=True)
+        os.makedirs(self.save_path, exist_ok=True)
         with open(str(self.result_paths['model'])+'.pkl', 'wb') as file:
             pickle.dump(self.model, file)
+        with open(str(self.result_paths['scaler'])+'.pkl', 'wb') as file:
+            pickle.dump(self.scaler, file)
 
     def score(self, feats, ref_feats, fname):
         if self.cci_features is not None:
