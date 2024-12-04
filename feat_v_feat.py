@@ -84,11 +84,15 @@ if __name__ == "__main__":
         cci_features = None
         print('Loading features from local filesystem.')
 
-    stimulus_paths = select_stimuli(stim_dir=args.stimulus_dir, stim_bucket=args.stim_bucket, sessions=args.sessions, stories=args.stories, recursive=args.recursive)
-    assert len(stimulus_paths) > 0, "no stimuli to process!"
+    try: 
+        stimulus_paths = select_stimuli(stim_dir=args.stimulus_dir, stim_bucket=args.stim_bucket, sessions=args.sessions, stories=args.stories, recursive=args.recursive)
+        assert len(stimulus_paths) > 0, "no stimuli to process!"
 
-    stimulus_paths = collections.OrderedDict(sorted(stimulus_paths.items(), key=lambda x: x[0]))
-    stimulus_names = list(stimulus_paths.keys())
+        stimulus_paths = collections.OrderedDict(sorted(stimulus_paths.items(), key=lambda x: x[0]))
+        stimulus_names = list(stimulus_paths.keys())
+    except:
+        stimulus_names=None
+
     
     ## LOAD IN FEATURES
     #print(cci_features)
@@ -96,6 +100,9 @@ if __name__ == "__main__":
     if args.feat1_times is None:
         args.feat1_times = args.feat_dir1
     feat1_times = load_features(args.feat1_times, 'times', cci_features, args.recursive, search_str='times')
+
+    if stimulus_names is None:
+        stimulus_names = list(feats1.keys())
 
     aligned_feats1 = align_times(feats1, feat1_times)
 

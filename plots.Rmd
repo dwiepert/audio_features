@@ -17,7 +17,7 @@ np <- import("numpy")
 read_split <- function(split_dir){
   #avg_corr <- 0
   #count <- 0
-  files <- list.files(path=split_dir, pattern='npz', full.names=TRUE)
+  files <- list.files(path=split_dir, pattern='npz', full.names=TRUE, recursive=FALSE)
   all_corrs <- c()
   for (i in 1:length(files)){
     corrs <- data.frame(np$load(files[i])['arr_0']) %>% na.omit()
@@ -175,8 +175,21 @@ data <- get_table(vars)
 ```{r make-plots}
 #non-multiclass 
 ridge <- data %>% filter(type=='ridge', feat2 != 'word') %>% group_by(feat1, feat2)
-ridge_word <- data %>% filter(type=='ridge', feat2 == 'word')
-multiclass <- data %>% filter(type=='multiclass')
+ridge_word <- data %>% filter(type=='ridge', feat2 == 'word') %>% group_by(feat1,feat2,version)
+multiclass <- data %>% filter(type=='multiclass') %>% group_by(feat1, version)
+
+opensmile <- ridge %>% filter(feat2=='opensmile')
+
+p <- ggplot(ridge, aes(factor(feat1), values, fill=factor(feat1))) + geom_boxplot(outliers.shape=NA) + facet_wrap(~feat2, nrow=1)
+summ2 <- ridge %>% group_by(feat1,feat2) %>% summarize(mean=mean(values))
+ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/results/ridge_plot1.png', height=7, width=12)
+
+p <- ggplot(ridge_word, aes(factor(feat1), values, fill=factor(feat1))) + geom_violin() + facet_wrap(~feat2+version, nrow=1)  + stat_summary(fun=mean, geom="line")
+summ <- ridge_word %>% group_by(feat1,feat2,version) %>% summarize(mean=mean(values))
+ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/results/ridge_plot2.png', height=5, width=10)
+
+p <- ggplot(multiclass,aes(x=feat1, y=values, fill=feat1))+ geom_bar(stat="identity") + facet_wrap(~version, nrow=1)
+ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/results/multiclass_plot1.png', height=5, width=10)
 ```
 
 ```{r}
@@ -219,7 +232,7 @@ p2 <- ggplot(all_corrs, aes(feature, corr, fill=name)) + geom_violin(position="d
 p3 <-  ggplot(all_corrs, aes(name, corr, fill=name)) + geom_violin(position="dodge") + facet_wrap(~feature, nrow=1)
 
 p4 <- ggplot(all_corrs, aes(name, corr, fill=name)) + geom_boxplot() + facet_wrap(~feature, nrow=1)
-
+ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/results/ridge_original1.png', height=5, width=10)
 avg_correlations <- all_corrs %>% ungroup() %>% group_by(name, feature) %>% summarise(mean=mean(corr))
 
 ```
