@@ -67,6 +67,7 @@ class RRegression(BaseModel):
         self.model = RidgeCV(alphas=self.alphas, cv=cv, scoring=self.scoring)
 
         st = time.time()
+        print('Fitting model...')
         # Fit model with best alpha
         self.scaler = StandardScaler().fit(self.iv)
         self.model.fit(self.scaler.transform(self.iv), self.dv)
@@ -121,7 +122,7 @@ class RRegression(BaseModel):
                 corr = np.corrcoef(pred[i,:], rf[i,:])[0, 1]
                 correlations.append(corr)
         else:
-            for i in range(rf.shape[0]):
+            for i in range(rf.shape[1]):
                 corr = np.corrcoef(pred[:,i], rf[:,i])[0, 1]
                 correlations.append(corr)
 

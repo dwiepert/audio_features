@@ -45,24 +45,24 @@ class BaseModel:
             json.dump(self.config,f)
         
         if self.cci_features is None:
-            new_path = self.save_path/'model'
+            self.new_path = self.save_path/'model'
         else:
-            new_path = self.local_path/'model'
+            self.new_path = self.local_path/'model'
 
-        config_name = new_path/ f'{self.model_type}_config.json'
-        os.makedirs(new_path, exist_ok=True)
+        config_name = self.new_path/ f'{self.model_type}_config.json'
+        os.makedirs(self.new_path, exist_ok=True)
         with open(str(config_name), 'w') as f:
             json.dump(self.config,f)
 
-        self.result_paths = {'model': new_path/'model', 'scaler': new_path/'scaler'}
+        self.result_paths = {'model': self.new_path/'model', 'scaler': self.new_path/'scaler'}
         
-        self.result_paths['train_eval'] = new_path / 'train_eval'
-        self.result_paths['test_eval'] = new_path / 'test_eval'
+        self.result_paths['train_eval'] = self.new_path / 'train_eval'
+        self.result_paths['test_eval'] = self.new_path / 'test_eval'
         self.result_paths['metric'] = {}
         self.result_paths['eval'] = {}
         for f in self.fnames:
              self.result_paths['metric'][f] = self.save_path/f
-             self.result_paths['eval'][f] = new_path/f"{f}_eval"
+             self.result_paths['eval'][f] = self.new_path/f"{f}_eval"
         
         #self._check_previous()
     
@@ -139,7 +139,6 @@ class BaseModel:
     def _save_model(self, model, scaler, eval):
         if self.cci_features:
             print('Model cannot be saved to cci_features. Saving to local path instead')
-        
 
         # Save the model to a file using pickle
         os.makedirs(self.save_path, exist_ok=True)
@@ -148,12 +147,17 @@ class BaseModel:
         with open(str(self.result_paths['scaler'])+'.pkl', 'wb') as file:
             pickle.dump(scaler, file)
         
-        np.savez_compressed(str(self.result_paths['train_eval'])+'.npz', eval)
+        os.makedirs(str(self.result_paths['train_eval'].parent), exist_ok=True)
+        with open(str(self.result_paths['train_eval'])+'.json', 'w') as f:
+            json.dump(eval,f)
         
 
     def _save_metrics(self, metric, fname, name='metric'):
         if fname not in self.result_paths[name]:
-            self.result_paths[name][fname] = self.save_path / fname
+            if name == 'eval':
+                self.result_paths[name][fname] = self.new_path / fname
+            else:
+                self.result_paths[name][fname] = self.save_path / fname
 
         if name == 'eval':
             os.makedirs(str(self.result_paths['eval'][fname].parent), exist_ok=True)

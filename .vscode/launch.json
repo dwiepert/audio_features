@@ -191,8 +191,7 @@
                 "2",
                 "3",
                 "4",
-                "5",
-                "--overwrite"
+                "5"
                 
             ]
         },
@@ -204,13 +203,13 @@
             "console": "integratedTerminal",
             "args": [
                 "--feat_dir2",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/phone_identity/",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/old_features/old_features/opensmile/ComParE_2016_lld_len25.0_shift20.0",
                 "--feat_dir1",
-                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large/layer.9/",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/old_features/old_features/hf/wavlm-large/layer.9/",
                 "--feat1_type=wavlm-large.9",
-                "--feat1_times=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/features_cnk0.1_ctx8.0_pick1_skip5/hf/wavlm-large",
+                "--feat1_times=/Users/dwiepert/Documents/Grad_School/Huth/data/data/old_features/old_features/hf/wavlm-large",
                 "--feat2_type",
-                "phone",
+                "opensmile",
                 "--function=ridge",
                 "--out_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/",
@@ -222,12 +221,10 @@
                 "3",
                 "4",
                 "5",
-                "--zscore",
-                "--cv_splits=3",
+                "--cv_splits=2",
                 "--n_boots=1",
-                "--min_type=1",
                 "--split",
-                "--split_path=/Users/dwiepert/Documents/Grad_School/Huth/data/data/outputs/ridge_wavlm-large.9_to_fbank/zscore/splits/",
+                "--corr_type=time"
             ]
         },
         {

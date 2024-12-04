@@ -58,11 +58,10 @@ if __name__ == "__main__":
                                    "Overrides --sessions and --subjects.")
     #Model specific
     model_args = parser.add_argument_group('model', 'model related arguments')
-    model_args.add_argument("--scoring", type=str)
     model_args.add_argument("--metric_type", type=str)
     model_args.add_argument("--cv_splits", type=int, default=5)
     model_args.add_argument("--n_boots", type=int, default=3)
-    model_args.add_argument("--corr_type", type=str, default='features')
+    model_args.add_argument("--corr_type", type=str, default='feature', help="feature or time")
     data_args = parser.add_argument_group('data', 'data splitting related args')
     data_args.add_argument("--split", action='store_true')
     data_args.add_argument("--split_path", type=str)
