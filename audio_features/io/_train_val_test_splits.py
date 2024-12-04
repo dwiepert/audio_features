@@ -50,7 +50,7 @@ class DatasetSplitter:
         
         return train_stories, val_stories, test_stories
 
-    def _generate_splits(self) -> List[Dict[str:List[str]]]:
+    def _generate_splits(self) -> List[Dict[str,List[str]]]:
         """
         Generate all splits and save
 
@@ -82,7 +82,7 @@ class DatasetSplitter:
             splits = json.load(f)
         return splits
 
-    def split_features(self, features: Dict[str:Dict[str:np.ndarray]], split: Dict[str, List[str]]) -> Tuple[Dict[str:Dict[str:np.ndarray]],  Dict[str:Dict[str:np.ndarray]],  Dict[str:Dict[str:np.ndarray]]]:
+    def split_features(self, features: Dict[str,Dict[str,np.ndarray]], split: Dict[str, List[str]]) -> Tuple[Dict[str,Dict[str,np.ndarray]],  Dict[str,Dict[str,np.ndarray]],  Dict[str,Dict[str,np.ndarray]]]:
         """
         Split a feature dict based on splits
 

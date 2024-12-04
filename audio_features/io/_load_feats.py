@@ -13,7 +13,7 @@ import numpy as np
 ##local
 from ._split_feats import split_features
 
-def _process_ema(ema_feats:Dict[str:np.ndarray]) -> Dict[str:np.ndarray]:
+def _process_ema(ema_feats:Dict[str,np.ndarray]) -> Dict[str,np.ndarray]:
     """
     Remove loudness from ema features
     :param ema_feats: dict of ema feats
@@ -31,7 +31,7 @@ def _process_ema(ema_feats:Dict[str:np.ndarray]) -> Dict[str:np.ndarray]:
     return new_feats
 
 def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=None, recursive:bool=False, 
-                  ignore_str:Union[str,list]=None,search_str:Union[str,list]=None) -> Dict[str:Dict[str:np.ndarray]]:
+                  ignore_str:Union[str,list]=None,search_str:Union[str,list]=None) -> Dict[str,Dict[str,np.ndarray]]:
     """
     Load features
 

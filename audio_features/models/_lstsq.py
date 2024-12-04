@@ -29,7 +29,7 @@ class LSTSQRegression(BaseModel):
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:Dict[str:np.ndarray], iv_type:str, dv:Dict[str:np.ndarray], dv_type:str, save_path:Union[str,Path],
+    def __init__(self, iv:Dict[str,np.ndarray], iv_type:str, dv:Dict[str,np.ndarray], dv_type:str, save_path:Union[str,Path],
                  cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
         
         super().__init__(model_type='lstsq', iv=iv, iv_type=iv_type, dv=dv, dv_type=dv_type,
@@ -102,7 +102,7 @@ class LSTSQRegression(BaseModel):
         with open(str(self.result_paths['train_eval'])+'.json', 'w') as f:
             json.dump(metrics,f)
 
-    def score(self, feats:Dict[str:np.ndarray], ref_feats:Dict[str:np.ndarray], fname:str) -> tuple[np.ndarray, Dict[str:np.ndarray]]:
+    def score(self, feats:Dict[str,np.ndarray], ref_feats:Dict[str,np.ndarray], fname:str) -> tuple[np.ndarray, Dict[str,np.ndarray]]:
         """
         Extract residuals for a set of features
 

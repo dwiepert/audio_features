@@ -10,7 +10,7 @@ from typing import Dict
 ##third-party
 import numpy as np 
 
-def align_times(feats:Dict[str:np.ndarray], times:Dict[str:np.ndarray]) -> Dict[str:Dict[str:np.ndarray]]:
+def align_times(feats:Dict[str,np.ndarray], times:Dict[str,np.ndarray]) -> Dict[str,Dict[str,np.ndarray]]:
     """
     Sort features in ascending order based on time
 

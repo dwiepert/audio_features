@@ -33,7 +33,7 @@ class BaseModel:
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, model_type:str, iv:Dict[str:np.ndarray], iv_type:str, dv:Dict[str:np.ndarray], dv_type:str, config:dict, 
+    def __init__(self, model_type:str, iv:Dict[str,np.ndarray], iv_type:str, dv:Dict[str,np.ndarray], dv_type:str, config:dict, 
                  save_path:Union[str,Path], cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
         
         self.model_type = model_type
@@ -92,7 +92,7 @@ class BaseModel:
         
         #self._check_previous()
     
-    def _process_features(self, feat:Dict[str:np.ndarray]) -> tuple[np.ndarray, Dict[str:list], np.ndarray]:
+    def _process_features(self, feat:Dict[str,np.ndarray]) -> tuple[np.ndarray, Dict[str,list], np.ndarray]:
         """
         Concatenate features from separate files into one and maintain information to undo concatenation
         
@@ -121,7 +121,7 @@ class BaseModel:
             nrows[f] = [start_ind, end_ind]
         return concat, nrows, concat_times
 
-    def _unprocess_features(self, concat:np.ndarray, nrows: Dict[str:list], concat_times:np.ndarray) -> Dict[str:np.ndarray]:
+    def _unprocess_features(self, concat:np.ndarray, nrows: Dict[str,list], concat_times:np.ndarray) -> Dict[str,np.ndarray]:
         """
         Undo concatenation process
 
@@ -161,7 +161,7 @@ class BaseModel:
             self.model=None
             self.scaler=None
 
-    def _save_model(self, model:Union[LogisticRegressionCV, RidgeCV], scaler:StandardScaler, eval:Dict[str:float]):
+    def _save_model(self, model:Union[LogisticRegressionCV, RidgeCV], scaler:StandardScaler, eval:Dict[str,float]):
         """
         Save a trained model/scaler and train evaluation metrics
 
@@ -211,7 +211,7 @@ class BaseModel:
             os.makedirs(self.result_paths[name][fname].parent, exist_ok=True)
             np.savez_compressed(str(self.result_paths[name][fname])+'.npz', metric)
     
-    def eval_model(self, true:np.ndarray, pred:np.ndarray) -> Dict[str:float]:
+    def eval_model(self, true:np.ndarray, pred:np.ndarray) -> Dict[str,float]:
         """
         Evaluate a model with R-squared and RMSE
 
