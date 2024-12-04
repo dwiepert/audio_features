@@ -2,7 +2,7 @@
 Run Least squares regression
 
 Author(s): Daniela Wiepert
-Last Modified: 12/02/2024
+Last Modified: 12/04/2024
 """
 #IMPORTS
 ##built-in
@@ -13,11 +13,13 @@ from typing import Union
 
 ##third-party
 import numpy as np
+from sklearn.metrics import r2_score, f1_score,  mean_squared_error
+from sklearn.preprocessing import StandardScaler
 
 ##local
-from database_utils.functions import zscore as _zscore
-from database_utils.functions import unzscore 
-class LSTSQRegression:
+from ._base_model import BaseModel
+
+class LSTSQRegression(BaseModel):
     """
     :param iv: dict, independent variable(s), keys are stimulus names, values are array like features
     :param iv_type: str, type of feature for documentation purposes
@@ -29,105 +31,22 @@ class LSTSQRegression:
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path], zscore:bool=True,
+    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],
                  cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
-        self.iv_type = iv_type
-        self.dv_type = dv_type
-
-        self.fnames = list(iv.keys())
-        self.zscore = zscore
-        self.iv, self.iv_rows, self.iv_times = self._process_features(iv)
-        self.dv, self.dv_rows, self.dv_times = self._process_features(dv)
-
-        self._check_rows()
-
-        #TODO: some kind of input to understand how to break apart the concatenated information? or concatenate in here?
-        if zscore:
-           self.iv, self.iv_unz = _zscore(self.iv, return_unzvals=True)
-           self.dv, self.dv_unz = _zscore(self.dv, return_unzvals=True)
-
-        self.save_path=Path(save_path)
-        if local_path is None or self.cci_features is None:
-            self.local_path = self.save_path
-        else:
-            self.local_path = Path(local_path)
-        self.cci_features = cci_features
-        if self.cci_features is None:
-            self.local_path = self.save_path
-        else:
-            assert self.local_path is not None, 'Please give a local path to save config files to (json not cotton candy compatible)'
-        #self.fnames=self.fnames
-        self.overwrite=overwrite
-
-        self.config = {
-            'iv_type': self.iv_type,'iv_shape': self.iv.shape, 'iv_rows': self.iv_rows, 
-            'dv_type': self.dv_type, 'dv_shape': self.dv.shape, 'dv_rows':self.dv_rows,
-            'train_fnames': self.fnames, 'overwrite': self.overwrite
-        }
-
-        os.makedirs(self.local_path, exist_ok=True)
-        with open(str(self.local_path / 'LSTSQRegression_config.json'), 'w') as f:
-            json.dump(self.config,f)
         
-        self.result_paths = {'weights': self.save_path/'weights'}
-        self.result_paths['residuals'] = {}
-        #self.result_paths['lstsq_residuals'] = {}
+        super().__init__(model_type='lstsq', iv=iv, iv_type=iv_type, dv=dv, dv_type=dv_type,
+                            config={}, save_path=save_path, cci_features=cci_features, overwrite=overwrite, local_path=local_path)
+
+        
+        new_path = self.save_path / 'model'
+        self.result_paths['weights']= new_path /'weights'
+        self.result_paths['emawav'] = {}
         for f in self.fnames:
-            self.result_paths['residuals'][f] = self.save_path / f
-            #self.result_paths['lstsq_residuals'][f] = rr_path /f
-        #self.result_paths['lstsq_residuals']['concat'] = rr_path
+             save = save_path / 'emawav'
+             self.result_paths['emawav'][f] = save / f
+
         self._check_previous()
         self._fit()
-    
-    def _process_features(self, feat:dict):
-        """
-        Concatenate features from separate files into one and maintain information to undo concatenation
-        
-        :param feat: dict, feature dictionary, stimulus names as keys
-        :return concat: np.ndarray, concatenated array
-        :return nrows: dict, start/end indices for each stimulus
-        :return concat_times: np.ndarray, concatenated tiems array
-        """
-        nrows = {}
-        concat = None 
-        concat_times = None
-        for f in self.fnames:
-            temp = feat[f]
-            n = temp['features']
-            #if self.zscore: 
-            #    n = _zscore(n) #ZSCPORE BY FEATURE
-
-            t = temp['times']
-            if concat is None:
-                concat = n 
-                concat_times = t
-                start_ind = 0
-            else:
-                concat = np.vstack((concat, n))
-                concat_times = np.vstack((concat_times,t))
-                start_ind = concat.shape[0]-1
-            
-            end_ind = start_ind + n.shape[0]
-            nrows[f] = [start_ind, end_ind]
-        return concat, nrows, concat_times
-    
-    
-    def _unprocess_features(self, concat, nrows, concat_times):
-        """
-        Undo concatenation process
-
-        :param concat: np.ndarray, concatenated array
-        :param nrows: dict, start/end indices for each stimulus
-        :param concat_times: np.ndarray, concatenated tiems array
-        :return feats: dict, feature dictionary, stimulus names as keys
-        """
-        feats = {}
-        for f in nrows:
-            inds = nrows[f]
-            n = concat[inds[0]:inds[1],:]
-            t = concat_times[inds[0]:inds[1],:]
-            feats[f] = {'features':n, 'times':t}
-        return feats
     
     def _check_previous(self):
         """
@@ -150,36 +69,43 @@ class LSTSQRegression:
         else:
             self.wt = None 
 
-    def _check_rows(self):
-        """
-        Check if all rows are equal
-        """
-        for s in list(self.iv_rows.keys()):
-            assert all(np.equal(self.iv_rows[s], self.dv_rows[s])), f'Stimulus {s} has inconsistent sizes. Please check features.'
     
     def _fit(self):
         """
         Run least squares regression
         Saves features, sets self.wt to the learned weights
         """
+        #self.scaler = StandardScaler().fit(self.iv)
         if self.weights_exist and not self.overwrite:
             assert self.wt is not None, 'Weights do not exist. Loading weights went wrong.'
             print('Weights already exist and should not be overwritten')
             return
         
-        x, residuals, rank, s = np.linalg.lstsq(self.iv, self.dv)
+        x, residuals, rank, s = np.linalg.lstsq(self.iv, self.dv, rcond=None)
         
         self.wt = x 
 
+        #train metrics
+        pred_dv = self.iv @ self.wt
+        metrics = self.eval_model(self.dv, pred_dv)
+
+
         if self.cci_features:
             self.cci_features.upload_raw_array(self.result_paths['weights'], self.wt)
+            #self.cci_features.upload_raw_array(self.result_paths['train_eval'], metrics)
             #self.cci_features.upload_raw_array(self.result_paths['lstsq_residuals'], residuals)
         else:
-            os.makedirs(self.result_paths['weights'], exist_ok=True)
+            os.makedirs(self.result_paths['weights'].parent, exist_ok=True)
             np.savez_compressed(str(self.result_paths['weights'])+'.npz', self.wt)
+            #np.savez_compressed(str(self.result_paths['train_eval'])+'.npz', metrics)
             #np.savez_compressed(str(self.result_paths['lstsq_residuals']['concat']+'.npz'), residuals)
+        
+        #config_name = self.local_path / f'{self.model_type}_config.json'
+        os.makedirs(str(self.result_paths['train_eval'].parent), exist_ok=True)
+        with open(str(self.result_paths['train_eval'])+'.json', 'w') as f:
+            json.dump(metrics,f)
 
-    def extract_residuals(self, feats, ref_feats, fname):
+    def score(self, feats, ref_feats, fname):
         """
         Extract residuals for a set of features
 
@@ -189,14 +115,14 @@ class LSTSQRegression:
         :return r: extracted residuals
         """
         if self.cci_features is not None:
-            if self.cci_features.exists_object(self.result_paths['residuals'][fname]) and not self.overwrite:
+            if self.cci_features.exists_object(self.result_paths['metric'][fname]) and not self.overwrite:
                 return 
         else:
-            if Path(str(self.result_paths['residuals'][fname]) + '.npz').exists() and not self.overwrite:
+            if Path(str(self.result_paths['metric'][fname]) + '.npz').exists() and not self.overwrite:
                 return 
         
         #assert self.wt is not None, 'Regression has not been run yet. Please do so.'
-        f = _zscore(feats['features'])
+        f = feats['features']
         t = feats['times']
         rf = ref_feats['features']
         rt = ref_feats['times']
@@ -204,17 +130,13 @@ class LSTSQRegression:
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
         f = f.astype(self.wt.dtype)
         pred = f @ self.wt 
-        pred = unzscore(pred, self.dv_unz)
 
         r = np.subtract(pred, rf)
 
-        if fname not in self.result_paths['residuals']:
-            self.result_paths['residuals'][fname] = self.save_path / fname
-        
-        if self.cci_features:
-            self.cci_features.upload_raw_array(self.result_paths['residuals'][fname], r)
-        else:
-            os.makedirs(self.result_paths['residuals'][fname].parent, exist_ok=True)
-            np.savez_compressed(str(self.result_paths['residuals'][fname])+'.npz', r)
+        self._save_metrics(r, fname, 'metric')
+        self._save_metrics(pred, fname, 'emawav')
 
-        return r
+        per_story_metrics = self.eval_model(rf, pred)
+        self._save_metrics(per_story_metrics, fname, 'eval')
+
+        return r, {'true': rf, 'pred':pred}

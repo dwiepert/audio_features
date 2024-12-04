@@ -2,29 +2,27 @@
 Run Ridge Regression
 
 Author(s): Rachel Yam
-Last Modified: 11/23/2024
+Last Modified: 12/04/2024
 """
 #IMPORTS
 ##built-in
-import json
-import os
+
 from pathlib import Path
 import time
-from typing import Union, List
+from typing import Union
 
 ##third-party
 import numpy as np
 #ridge regression
 #from sklearn.linear_model import ridge_regression
-from sklearn.linear_model import Ridge, RidgeCV
-from sklearn.metrics import r2_score
+from sklearn.linear_model import RidgeCV
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import RepeatedKFold
-import pickle
 
 ##local
-from database_utils.functions import zscore as _zscore
+from ._base_model import BaseModel
 
-class RRegression:
+class RRegression(BaseModel):
     """
     :param iv: dict, independent variable(s), keys are stimulus names, values are array like features
     :param iv_type: str, type of feature for documentation purposes
@@ -35,152 +33,25 @@ class RRegression:
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.logspace(-5,2,num=10), n_splits:int=10, n_repeats:int=20, zscore:bool=True,
-                 scoring:str='neg_mean_absolute_error',cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
-         self.iv_type = iv_type
-         self.dv_type = dv_type
+    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.logspace(-5,2,num=10), n_splits:int=10, n_repeats:int=20,
+                 scoring:str='neg_mean_absolute_error', corr_type="time",cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
+         
+         #ridge specific
          self.n_splits = n_splits
          self.n_repeats = n_repeats
-         self.fnames = list(iv.keys())
          self.alphas = alphas
          self.scoring = scoring
-         self.zscore = zscore
-         self.iv, self.iv_rows, self.iv_times = self._process_features(iv)
-         self.dv, self.dv_rows, self.dv_times = self._process_features(dv)
-    
-         self._check_rows()
-    
-         if zscore:
-            self.iv, self.iv_unz = _zscore(self.iv, return_unzvals=True)
-            self.dv, self.dv_unz = _zscore(self.dv,return_unzvals=True)
-    
-         self.save_path=Path(save_path)
-         if local_path is None or self.cci_features is None:
-             self.local_path = self.save_path
-         else:
-             self.local_path = Path(local_path)
-         self.cci_features = cci_features
-         if self.cci_features is None:
-             self.local_path = self.save_path
-         else:
-             assert self.local_path is not None, 'Please give a local path to save config files to (json not cotton candy compatible)'
-        
-         self.overwrite=overwrite
-    
-         self.config = {
-             'iv_type': self.iv_type,'iv_shape': self.iv.shape, 'iv_rows': self.iv_rows, 
-             'dv_type': self.dv_type, 'dv_shape': self.dv.shape, 'dv_rows':self.dv_rows, 
-             'alphas': self.alphas.tolist(), 'scoring':self.scoring, 'n_splits': self.n_splits,
-             'n_repeats': self.n_repeats, 'train_fnames': self.fnames, 'overwrite': self.overwrite
-         }
-    
-         os.makedirs(self.local_path, exist_ok=True)
-         with open(str(self.local_path / 'ridgeRegression_config.json'), 'w') as f:
-             json.dump(self.config,f)
-        
-         if self.cci_features is None:
-            self.result_paths = {'model': self.save_path/'model'}
-         else:
-            self.result_paths = {'model': self.local_path/'model'}
+         self.corr_type = corr_type
 
-         self.result_paths['train_corr'] = {}
-         self.result_paths['corr'] = {}
-         self.result_paths['weights'] = self.save_path/'weights'
-        
-         for f in self.fnames:
-             t1 =self.save_path /'train_correlations'
-             self.result_paths['train_corr'][f] =  t1/f
-             t2 = self.save_path/'test_correlations'
-             self.result_paths['corr'][f] = t2/f
-          
+         add_config = {'alphas': self.alphas.tolist(), 'scoring':self.scoring, 'n_splits': self.n_splits,
+             'correlation_type':self.corr_type, 'n_repeats': self.n_repeats
+         }
+         
+         super().__init__(model_type='ridge', iv=iv, iv_type=iv_type, dv=dv, dv_type=dv_type, config=add_config, save_path=save_path, cci_features=cci_features,
+                          overwrite=overwrite, local_path=local_path)
+         
          self._check_previous()
          self._fit()
-         #self.pearson_coeff = None
-         #self.ridge_reg = None
-    
-    def _process_features(self, feat:dict):
-        """
-        Concatenate features from separate files into one and maintain information to undo concatenation
-        
-        :param feat: dict, feature dictionary, stimulus names as keys
-        :return concat: np.ndarray, concatenated array
-        :return nrows: dict, start/end indices for each stimulus
-        :return concat_times: np.ndarray, concatenated tiems array
-        """
-        nrows = {}
-        concat = None 
-        concat_times = None
-        for f in self.fnames:
-            temp = feat[f]
-            n = temp['features']
-            #if self.zscore:
-            #    n = _zscore(n)
-            t = temp['times']
-            if concat is None:
-                concat = n 
-                concat_times = t
-                start_ind = 0
-            else:
-                concat = np.vstack((concat, n))
-                concat_times = np.vstack((concat_times,t))
-                start_ind = concat.shape[0]-1
-            
-            end_ind = start_ind + n.shape[0]
-            nrows[f] = [start_ind, end_ind]
-        return concat, nrows, concat_times
-    
-    
-    def _unprocess_features(self, concat, nrows, concat_times):
-        """
-        Undo concatenation process
-
-        :param concat: np.ndarray, concatenated array
-        :param nrows: dict, start/end indices for each stimulus
-        :param concat_times: np.ndarray, concatenated tiems array
-        :return feats: dict, feature dictionary, stimulus names as keys
-        """
-        feats = {}
-        for f in nrows:
-            inds = nrows[f]
-            n = concat[inds[0]:inds[1],:]
-            t = concat_times[inds[0]:inds[1],:]
-            feats[f] = {'features':n, 'times':t}
-        return feats
-    
-    def _check_rows(self):
-        """
-        Check that all rows match
-        """
-        for s in list(self.iv_rows.keys()):
-            assert all(np.equal(self.iv_rows[s], self.dv_rows[s])), f'Stimulus {s} has inconsistent sizes. Please check features.'
-    
-    def _check_previous(self):
-        """
-        """
-        self.weights_exist = False
-        if Path(str(self.result_paths['model'])+'.pkl').exists(): self.weights_exist=True
-
-        if self.weights_exist and not self.overwrite:
-            with open(str(self.result_paths['model'])+'.pkl', 'rb') as f:
-                self.model = pickle.load(f)
-        else:
-            self.model=None
-
-        # if self.cci_features is not None:
-        #     if self.cci_features.exists_object(str(self.save_path)):
-        #         if self.cci_features.exists_object(str(self.result_paths['weights'])): self.weights_exist=True
-        # else:
-        #     if Path(str(self.result_paths['weights'])+'.npz').exists(): self.weights_exist=True
-
-        # if self.weights_exist and not self.overwrite: 
-        #     if self.cci_features is not None:
-        #         self.wt = self.cci_features.download_raw_array(str(self.result_paths['weights']))
-        #     else:
-        #         temp = np.load(str(self.result_paths['weights'])+'.npz')
-        #         k = list(temp)[0]
-        #         self.wt = temp[k]
-        # else:
-        #     self.wt = None 
 
     def _fit(self):
         """
@@ -197,50 +68,21 @@ class RRegression:
 
         st = time.time()
         # Fit model with best alpha
-        self.model.fit(self.iv, self.dv)
+        self.scaler = StandardScaler().fit(self.iv)
+        self.model.fit(self.scaler.transform(self.iv), self.dv)
         et = time.time()
+
+        pred = self.model.predict(self.scaler.transform(self.iv))
+        eval = self.eval_model(self.dv, pred)
 
         total = (et-st)/60
         print(f'Model fit in {total} minutes.')
 
-        #self.trained_model = ridge_reg
-
-        # predict
-        ridge_predict = self.model.predict(self.iv)
-
-        # pearson coefficients
-        correlations = []
-        for i in range(self.dv.shape[0]):
-            corr = np.corrcoef(self.dv[i,:], ridge_predict[i,:])[0, 1]
-            correlations.append(corr)
-        
-         #ridge regression solution
-        
-        # pearson correlations
-        self.pearson_coeff = self._unprocess_features(np.expand_dims(np.array(correlations),axis=1),self.dv_rows, self.dv_times)
-
-        if self.cci_features:
-            print('Model cannot be saved to cci_features. Saving to local path instead')
-        
-            #self.cci_features.upload_raw_array(self.result_paths['models'], self.ridge)
-
-        # Save the model to a file using pickle
-        os.makedirs(self.result_paths['model'], exist_ok=True)
-        with open(str(self.result_paths['model'])+'.pkl', 'wb') as file:
-            pickle.dump(self.model, file)
-            
-        if self.cci_features:
-            self.cci_features.upload_raw_array(str(self.result_paths['train_corr']), self.pearson_coeff)
-            #self.cci_features.upload_raw_array(str(self.result_paths['weights']), self.wt)
-                                           
-        else:
-            for story in self.pearson_coeff:
-                os.makedirs(self.result_paths['train_corr'][story], exist_ok=True)
-                np.savez_compressed(str(self.result_paths['train_corr'][story])+'.npz', self.pearson_coeff[story])
-            #np.savez_compressed(str(self.result_paths['weights'])+'.npz', self.wt)
+        self._save_model(self.model, self.scaler, eval)     
+       
           
     
-    def calculate_correlations(self, feats, ref_feats, fname):
+    def score(self, feats, ref_feats, fname):
         """
         Calculate average correlation
 
@@ -251,48 +93,41 @@ class RRegression:
         """
         #with open(self.save_path / 'ridge_regression_model.pkl', 'rb') as file:
          #   self.trained_model = pickle.load(file)
-        if fname in self.result_paths['corr']:
+        if fname in self.result_paths['metric']:
             if self.cci_features is not None:
-                if self.cci_features.exists_object(self.result_paths['corr'][fname]) and not self.overwrite:
+                if self.cci_features.exists_object(self.result_paths['metric'][fname]) and not self.overwrite:
                     return 
             else:
-                if Path(str(self.result_paths['corr'][fname]) + '.npz').exists() and not self.overwrite:
+                if Path(str(self.result_paths['metric'][fname]) + '.npz').exists() and not self.overwrite:
                     return 
         
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
 
-        if self.zscore:
-            f, f_unz = _zscore(feats['features'], return_unzvals=True)
-            rf = _zscore(ref_feats['features'])
-        else:
-            f = feats['features']
-            rf = ref_feats['features']
-
+        f = feats['features']
+        rf = ref_feats['features']
         t = feats['times']
         rt = ref_feats['times']
         
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
         f = f.astype(self.model.coef_.dtype)
-        pred = self.model.predict(f)
+        pred = self.model.predict(self.scaler.transform(f))
+
+        per_story_metrics = self.eval_model(rf, pred)
         
         correlations = []
-        for i in range(rf.shape[0]):
-            corr = np.corrcoef(pred[i,:], rf[i,:])[0, 1]
-            correlations.append(corr)
-        r2 = np.array(correlations)
-        #r2 = np.mean(correlations)
-        
-        if fname not in self.result_paths['corr']:
-            self.result_paths['corr'][fname] = self.save_path / fname
-        
-        if self.cci_features:
-            #print('features')
-            self.cci_features.upload_raw_array(self.result_paths['corr'][fname], r2)
-            #print(self.result_paths['residuals'][fname])
+        if self.corr_type=='time':
+            for i in range(rf.shape[0]):
+                corr = np.corrcoef(pred[i,:], rf[i,:])[0, 1]
+                correlations.append(corr)
         else:
-            #print('not features')
-            os.makedirs(self.result_paths['corr'][fname].parent, exist_ok=True)
-            np.savez_compressed(str(self.result_paths['corr'][fname])+'.npz', r2)
+            for i in range(rf.shape[0]):
+                corr = np.corrcoef(pred[:,i], rf[:,i])[0, 1]
+                correlations.append(corr)
+
+        r2 = np.array(correlations)
         
-        return r2
+        self._save_metrics(r2, fname)
+        self._save_metrics(per_story_metrics, fname, 'eval')
+
+        return r2, {'true': rf, 'pred':pred}

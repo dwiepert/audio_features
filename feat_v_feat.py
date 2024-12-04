@@ -9,14 +9,17 @@ Last modified: 11/27/2024
 #built-in
 import argparse
 import collections
+import json
+import os
 from pathlib import Path
 
 #third-party
 import cottoncandy as cc
+import numpy as np
 from tqdm import tqdm
 
 #local
-from audio_features.io import DatasetSplitter, load_features, phoneIdentity, wordIdentity, align_times
+from audio_features.io import DatasetSplitter, load_features, phoneIdentity, wordIdentity, align_times, Identity
 from audio_features.functions import LSTSQRegression, RRegression, LinearClassification
 from audio_preprocessing.io import select_stimuli
 
@@ -55,13 +58,11 @@ if __name__ == "__main__":
                                    "Overrides --sessions and --subjects.")
     #Model specific
     model_args = parser.add_argument_group('model', 'model related arguments')
-    model_args.add_argument("--zscore", action="store_true",
-                            help="specify if you want to zscore before running regression.")
     model_args.add_argument("--scoring", type=str)
     model_args.add_argument("--metric_type", type=str)
-    model_args.add_argument("--cv_splits", type=int, default=10)
-    model_args.add_argument("--n_boots", type=int, default=20)
-    model_args.add_argument("--min_type", type=int, default=1)
+    model_args.add_argument("--cv_splits", type=int, default=5)
+    model_args.add_argument("--n_boots", type=int, default=3)
+    model_args.add_argument("--corr_type", type=str, default='features')
     data_args = parser.add_argument_group('data', 'data splitting related args')
     data_args.add_argument("--split", action='store_true')
     data_args.add_argument("--split_path", type=str)
@@ -106,36 +107,28 @@ if __name__ == "__main__":
         feat2_times = load_features(args.feat2_times,'times', cci_features, args.recursive, search_str='times')
         aligned_feats2 = align_times(feats2, feat2_times)
     else:
-        if args.feat2_type == 'phone':
-            identity = phoneIdentity(stimulus_names, phone_dir=args.feat_dir2, cci_features=cci_features, recursive=args.recursive, overwrite=args.overwrite)
+        if args.feat2_type == 'word':
+            pretrained_path = './audio_features/data/english1000sm.hf5'
         else:
-            identity = wordIdentity(fnames=stimulus_names,word_dir=args.feat_dir2, cci_features=cci_features, pretrained_path='./audio_features/data/english1000sm.hf5', recursive=args.recursive, overwrite=args.overwrite)
-
+            pretrained_path = None
+        
         save_dir = Path(args.feat_dir2) / f'aligned_{args.feat1_type}'
         print(save_dir)
-        n1, n2 = identity.align_features(aligned_feats1, save_dir)
-
-        if args.min_type == 1:
-            temp = n1
-        elif args.min_type == 2:
-            temp = n2
-        else:
-            raise NotImplementedError("Only compatible with min_type 1 and 2")
+        identity = Identity(identity_type=args.feat2_type, features=aligned_feats1, identity_dir=args.feat_dir2,
+                            aligng_dir = save_dir, pretrained_path=pretrained_path, cci_features=cci_features,
+                            recursive=args.recursive, overwrite=args.overwrite)
         
+        temp = identity.get_aligned_feats()
+
         if args.function == 'multiclass_clf':
             aligned_feats1 = align_times(temp['features'], temp['times'])
             aligned_feats2 = align_times(temp['identity_targets'], temp['times'])
         else:
             aligned_feats1 = align_times(temp['features'], temp['times'])
             aligned_feats2 = align_times(temp['reg_targets'], temp['times'])
-        
-            #aligned_feats1 = {'features': temp['features'], 'times':temp['times']}
-            #aligned_feats2 = {'features': temp['reg_targets'], 'times': temp['times']}
     
     ## SAVING
-    save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}_zscore{args.zscore}')
-    if args.feat2_type in ['word','phone']:
-        save_path = save_path / f'identity_v{args.min_type}' 
+    save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}')
     if cci_features is None:
         save_path = args.out_dir / save_path
         local_path = None
@@ -170,69 +163,76 @@ if __name__ == "__main__":
             new_path = save_path
         else:
             new_path = save_path/f'split{i}'
+            if cci_features:
+                local_path = local_path/f'split{i}'
             train_feats1, val_feats1, test_feats1 = splitter.split_features(aligned_feats1, s)
             train_feats2, val_feats2, test_feats2 = splitter.split_features(aligned_feats2, s)
 
+        print('Saving regression results to:', new_path)
+        
         if args.function == 'lstsq':          
             ## EXTRACT RESIDUALS
-            print('Saving regression results to:', save_path)
-            print('localpath', local_path) # DEBUG
-            regressor = LSTSQRegression(iv=train_feats1,
-                                        iv_type=args.feat1_type, 
-                                        dv=train_feats2, 
-                                        dv_type=args.feat2_type,
-                                        save_path=new_path, 
-                                        zscore=args.zscore, 
-                                        cci_features=cci_features, 
-                                        overwrite=args.overwrite,
-                                        local_path=local_path)
-        
-
-            for k in tqdm(list(test_feats1.keys())):
-                regressor.extract_residuals(test_feats1[k], test_feats2[k], k)
-        
-        # define what to do for ridge regression here
-        elif args.function == 'ridge':
-            print('Ridge Regression')
-        
-            regressor = RRegression(iv=train_feats1, 
+            print('LSTSQ Regression')
+            model = LSTSQRegression(iv=train_feats1,
                                     iv_type=args.feat1_type,
                                     dv=train_feats2,
                                     dv_type=args.feat2_type,
-                                    n_splits=args.cv_splits,
-                                    n_repeats=args.n_boots,
-                                    zscore=args.zscore,
+                                    save_path=new_path, 
                                     cci_features=cci_features,
                                     overwrite=args.overwrite,
-                                    local_path=local_path,
-                                    save_path = new_path)
+                                    local_path=local_path)
+        elif args.function == 'ridge':
+            print('Ridge Regression')
+
+            model = RRegression(iv=train_feats1,
+                                iv_type=args.feat1_type,
+                                dv=train_feats2,
+                                dv_type=args.feat2_type,
+                                save_path=new_path,
+                                n_splits=args.cv_splits,
+                                n_repeats=args.n_boots,
+                                corr_type=args.corr_type,
+                                cci_features=cci_features,
+                                overwrite=args.overwrite,
+                                local_path=local_path)
             
-            for k in tqdm(list(test_feats1.keys())):
-                regressor.calculate_correlations(test_feats1[k], test_feats2[k], k)
     
         elif 'clf' in args.function:
-            classifier = LinearClassification(iv=train_feats1,
-                                            iv_type=args.feat1_type,
-                                            dv=train_feats2,
-                                            dv_type=args.feat2_type,
-                                            metric_type=args.metric_type,
-                                            classification_type=args.function,
-                                            save_path=new_path,
-                                            zscore=args.zscore,
-                                            cci_features=cci_features,
-                                            overwrite=args.overwrite,
-                                            local_path=local_path)
+            print(f'Classification: {args.function}')
+            model = LinearClassification(iv=train_feats1,
+                                         iv_type=args.feat1_type,
+                                         dv=train_feats2,
+                                         dv_type=args.feat2_type,
+                                         metric_type=args.metric_type,
+                                         save_path=new_path,
+                                         lassification_type=args.function,
+                                         cci_features=cci_features,
+                                         overwrite=args.overwrite,
+                                         local_path=local_path)
 
-            for k in tqdm(list(test_feats1.keys())):
-                classifier.score(test_feats1[k], test_feats2[k], k)
-
-        #print('pause')
-        elif args.function == 'extract':
-            print('Finished extraction')
         else:
             raise NotImplementedError(f'{args.function} is not implemented')
 
+        print(f'Scoring split {i}')
+        true = None
+        pred = None
+        for k in tqdm(list(test_feats1.keys())):
+            out, tpd = model.score(test_feats1[k], test_feats2[k], k)
 
+            if true is None:
+                true = tpd['true']
+                pred = tpd['pred']
+            else:
+                true = np.vstack((true, tpd['true']))
+                pred = np.vstack((pred, tpd['pred']))
+
+        metrics = model.eval_model(true, pred)
+        
+
+        os.makedirs(model.result_paths['test_eval'].parent, exist_ok=True)
+        with open(str(model.result_paths['test_eval'])+'.json', 'w') as f:
+            json.dump(metrics,f)
+        
 
     
 
