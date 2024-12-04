@@ -1,15 +1,41 @@
-import numpy as np
-import pickle
-import os
-import json
-from typing import Union
-from pathlib import Path
+"""
+Base model for regression/classification
 
-from sklearn.metrics import r2_score, f1_score,  mean_squared_error
+Author(s): Daniela Wiepert
+Last modified: 12/04/2024
+"""
+#IMPORTS
+##built-in
+import json
+import os
+import pickle
+from pathlib import Path
+from typing import Union,Dict
+##third-party
+import numpy as np
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import RidgeCV, LogisticRegressionCV
 
 class BaseModel:
-    def __init__(self, model_type:str, iv:dict, iv_type:str, dv:dict, dv_type:str, config:dict, save_path:Union[str,Path],
-                 cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
+    """
+    Base Model class
+    Includes all shared parameters
+
+    :param model_type: str, type of sklearn model
+    :param iv: dict, independent variable(s), keys are stimulus names, values are array like features
+    :param iv_type: str, type of feature for documentation purposes
+    :param dv: dict, dependent variable(s), keys are stimulus names, values are array like features
+    :param dv_type: str, type of feature for documentation purposes
+    :param config: dict, dictionary of model specific parameters to include in saved configuration
+    :param save_path: path like, path to save features to (can be cc path or local path)
+    :param cci_features: cotton candy interface for saving
+    :param overwrite: bool, indicate whether to overwrite values
+    :param local_path: path like, path to save config to locally if save_path is not local
+    """
+    def __init__(self, model_type:str, iv:Dict[str:np.ndarray], iv_type:str, dv:Dict[str:np.ndarray], dv_type:str, config:dict, 
+                 save_path:Union[str,Path], cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
+        
         self.model_type = model_type
         self.iv_type = iv_type
         self.dv_type = dv_type
@@ -66,7 +92,7 @@ class BaseModel:
         
         #self._check_previous()
     
-    def _process_features(self, feat:dict):
+    def _process_features(self, feat:Dict[str:np.ndarray]) -> tuple[np.ndarray, Dict[str:list], np.ndarray]:
         """
         Concatenate features from separate files into one and maintain information to undo concatenation
         
@@ -81,8 +107,6 @@ class BaseModel:
         for f in self.fnames:
             temp = feat[f]
             n = temp['features']
-            #if self.zscore:
-            #    n = _zscore(n)
             t = temp['times']
             if concat is None:
                 concat = n 
@@ -97,7 +121,7 @@ class BaseModel:
             nrows[f] = [start_ind, end_ind]
         return concat, nrows, concat_times
 
-    def _unprocess_features(self, concat, nrows, concat_times):
+    def _unprocess_features(self, concat:np.ndarray, nrows: Dict[str:list], concat_times:np.ndarray) -> Dict[str:np.ndarray]:
         """
         Undo concatenation process
 
@@ -123,6 +147,7 @@ class BaseModel:
     
     def _check_previous(self):
         """
+        Check if previous models exist - for models saved as .pkl and using scalers
         """
         self.weights_exist = False
         if Path(str(self.result_paths['model'])+'.pkl').exists() and Path(str(self.result_paths['scaler'])+'.pkl').exists(): self.weights_exist=True
@@ -136,7 +161,14 @@ class BaseModel:
             self.model=None
             self.scaler=None
 
-    def _save_model(self, model, scaler, eval):
+    def _save_model(self, model:Union[LogisticRegressionCV, RidgeCV], scaler:StandardScaler, eval:Dict[str:float]):
+        """
+        Save a trained model/scaler and train evaluation metrics
+
+        :param model: trained model (RidgeCV or LogisticRegressionCV)
+        :param scaler: trained StandardScaler
+        :param eval: dictionary with model evaluation metrics like RMSE and R^2 {str:float}
+        """
         if self.cci_features:
             print('Model cannot be saved to cci_features. Saving to local path instead')
 
@@ -152,7 +184,12 @@ class BaseModel:
             json.dump(eval,f)
         
 
-    def _save_metrics(self, metric, fname, name='metric'):
+    def _save_metrics(self, metric:Union[np.ndarray,dict], fname:str, name:str='metric'):
+        """
+        Save metrics for a given story
+
+        :param metric: either a numpy array of the correlations,etc. or a dictionary of values
+        """
         if fname not in self.result_paths[name]:
             if name == 'eval':
                 self.result_paths[name][fname] = self.new_path / fname
@@ -174,7 +211,14 @@ class BaseModel:
             os.makedirs(self.result_paths[name][fname].parent, exist_ok=True)
             np.savez_compressed(str(self.result_paths[name][fname])+'.npz', metric)
     
-    def eval_model(self, true, pred):
+    def eval_model(self, true:np.ndarray, pred:np.ndarray) -> Dict[str:float]:
+        """
+        Evaluate a model with R-squared and RMSE
+
+        :param true: np.ndarray, true values
+        :param pred: np.ndarray, predicted values
+        :return metrics: dictionary of values
+        """
         r2 = r2_score(true, pred)
         rmse = np.sqrt(mean_squared_error(true, pred))
         #f1 = f1_score(true, pred)

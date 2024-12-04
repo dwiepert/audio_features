@@ -23,92 +23,6 @@ from transformers import AutoModel, AutoModelForPreTraining, PreTrainedModel,\
 ##local
 from ._base_extraction import BaseExtractor
 
-def set_up_hf_extractor(model_name:str, save_path:Union[str, Path], use_featext:bool, sel_layers: Optional[List[int]],
-                        target_sample_rate:int=16000, model_config_path:Union[str,Path]='audio_features/configs/hf_model_configs.json', 
-                        return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5, keep_all:bool=False):
-    """
-    Function for setting up an hf feature extractor (loading model in, setting seeds, freezing extractor, etc.)
-
-    :param model_name: str, hugging face model name (key in model_configs)
-    :param save_path: local path to save extractor configuration information to
-    :param use_featext: bool, true if model has a separate feature extractor
-    :param sel_layers: List[int], list of layers to generate features for. Optional
-    :param target_sample_rate: int, target sampling rate (default=16000 hz)
-    :param model_config_path: str or Path, path to model configs json for hugging face
-    :param return_numpy: bool, true if returning numpy
-    :param num_select_frames: int, default=1. This can safely be set to 1 for chunk size of 100 and non-whisper models. 
-                              This specifies how many frames to select features from. 
-    :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
-                       so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
-    :param keep_all: bool, true if you want to keep all outputs from each batch
-    :return: initialized extractor
-    """
-    assert model_name is not None, 'Must give model name for hugging face models'
-    assert model_config_path is not None, 'Must give model config for hugging face models'
-    #Load model configuration
-    with open(str(model_config_path), 'r') as f:
-        model_config = json.load(f)[model_name]
-        model_hf_path = model_config['huggingface_hub']
-
-    #Read in data from model_config
-    if 'min_input_length' in model_config:
-        # this is stored originally in **samples**!!!
-        min_length_samples = model_config['min_input_length']
-    elif 'win_ms' in model_config:
-        min_length_samples = model.config['win_ms'] / 1000. * target_sample_rate
-    else:
-        min_length_samples = 0
-
-    if 'stride' in model_config:
-        frame_len_sec = model_config['stride'] / target_sample_rate
-    else:
-        frame_len_sec = None
-
-    #Load feature extractor
-    feature_extractor = None
-    if use_featext:
-        feature_extractor = AutoFeatureExtractor.from_pretrained(model_hf_path)
-    if feature_extractor is not None:
-        target_sample_rate = feature_extractor.sampling_rate
-    
-    #Load model
-    use_cuda = torch.cuda.is_available() #USED IN CASE YOU TEST ON COMPUTER WITHOUT GPU
-    print('Loading model', model_name, 'from the Hugging Face Hub...')
-    model = AutoModel.from_pretrained(model_hf_path, output_hidden_states=True, trust_remote_code=True)
-    if use_cuda:
-        model = model.cuda()
-
-   
-    # Re-initialize the weights, if requested (using the a specific seed, if
-    # specified)
-    if ('random_weights' in model_config) and model_config['random_weights']:
-        print("Re-initializing model weights...")
-        if 'random_seed' in model_config:
-            seed = model_config['random_seed']
-            # Re-seed all RNGs because some models *might* use non-pytorch RNGs
-            torch.manual_seed(seed)
-            np.random.seed(seed)
-            import random
-            random.seed(seed)
-        else:
-            print("User did not specify a random seed")
-
-        #Freeze the feature extractor
-        freeze_extractor = model_config.get('freeze_extractor', False)
-        if freeze_extractor:
-            print("Randomizing weights but NOT for the feature extractor")
-            ext_state_dict = copy.deepcopy(model.feature_extractor.state_dict())
-
-        model.apply(model._init_weights)
-
-        if freeze_extractor:
-            model.feature_extractor.load_state_dict(ext_state_dict)
-            del ext_state_dict # try to save some memory
-
-    return hfExtractor(model=model, model_type=model_name, save_path=save_path, feature_extractor=feature_extractor, target_sample_rate=target_sample_rate, 
-                       min_length_samples=min_length_samples, sel_layers=sel_layers, return_numpy=return_numpy,
-                       num_select_frames=num_select_frames,frame_skip=frame_skip, frame_len_sec=frame_len_sec, keep_all=keep_all)
-    
 class hfExtractor(BaseExtractor):
     """
     Feature extractor based on hugging face models
@@ -180,7 +94,7 @@ class hfExtractor(BaseExtractor):
                     
                 if s not in self.modules: self.modules[s] = module_name
     
-    def __call__(self, sample:dict):
+    def __call__(self, sample:dict) -> dict:
         """
         Run feature extraction on a snippet of a sample for hugging face models
 
@@ -329,4 +243,91 @@ class hfExtractor(BaseExtractor):
         sample['module_features'] = module_features
         sample['times'] = times
         return sample
-        
+    
+
+def set_up_hf_extractor(model_name:str, save_path:Union[str, Path], use_featext:bool, sel_layers: Optional[List[int]],
+                        target_sample_rate:int=16000, model_config_path:Union[str,Path]='audio_features/configs/hf_model_configs.json', 
+                        return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5, keep_all:bool=False) -> hfExtractor:
+    """
+    Function for setting up an hf feature extractor (loading model in, setting seeds, freezing extractor, etc.)
+
+    :param model_name: str, hugging face model name (key in model_configs)
+    :param save_path: local path to save extractor configuration information to
+    :param use_featext: bool, true if model has a separate feature extractor
+    :param sel_layers: List[int], list of layers to generate features for. Optional
+    :param target_sample_rate: int, target sampling rate (default=16000 hz)
+    :param model_config_path: str or Path, path to model configs json for hugging face
+    :param return_numpy: bool, true if returning numpy
+    :param num_select_frames: int, default=1. This can safely be set to 1 for chunk size of 100 and non-whisper models. 
+                              This specifies how many frames to select features from. 
+    :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
+                       so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
+    :param keep_all: bool, true if you want to keep all outputs from each batch
+    :return: initialized extractor
+    """
+    assert model_name is not None, 'Must give model name for hugging face models'
+    assert model_config_path is not None, 'Must give model config for hugging face models'
+    #Load model configuration
+    with open(str(model_config_path), 'r') as f:
+        model_config = json.load(f)[model_name]
+        model_hf_path = model_config['huggingface_hub']
+
+    #Read in data from model_config
+    if 'min_input_length' in model_config:
+        # this is stored originally in **samples**!!!
+        min_length_samples = model_config['min_input_length']
+    elif 'win_ms' in model_config:
+        min_length_samples = model.config['win_ms'] / 1000. * target_sample_rate
+    else:
+        min_length_samples = 0
+
+    if 'stride' in model_config:
+        frame_len_sec = model_config['stride'] / target_sample_rate
+    else:
+        frame_len_sec = None
+
+    #Load feature extractor
+    feature_extractor = None
+    if use_featext:
+        feature_extractor = AutoFeatureExtractor.from_pretrained(model_hf_path)
+    if feature_extractor is not None:
+        target_sample_rate = feature_extractor.sampling_rate
+    
+    #Load model
+    use_cuda = torch.cuda.is_available() #USED IN CASE YOU TEST ON COMPUTER WITHOUT GPU
+    print('Loading model', model_name, 'from the Hugging Face Hub...')
+    model = AutoModel.from_pretrained(model_hf_path, output_hidden_states=True, trust_remote_code=True)
+    if use_cuda:
+        model = model.cuda()
+
+   
+    # Re-initialize the weights, if requested (using the a specific seed, if
+    # specified)
+    if ('random_weights' in model_config) and model_config['random_weights']:
+        print("Re-initializing model weights...")
+        if 'random_seed' in model_config:
+            seed = model_config['random_seed']
+            # Re-seed all RNGs because some models *might* use non-pytorch RNGs
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            import random
+            random.seed(seed)
+        else:
+            print("User did not specify a random seed")
+
+        #Freeze the feature extractor
+        freeze_extractor = model_config.get('freeze_extractor', False)
+        if freeze_extractor:
+            print("Randomizing weights but NOT for the feature extractor")
+            ext_state_dict = copy.deepcopy(model.feature_extractor.state_dict())
+
+        model.apply(model._init_weights)
+
+        if freeze_extractor:
+            model.feature_extractor.load_state_dict(ext_state_dict)
+            del ext_state_dict # try to save some memory
+
+    return hfExtractor(model=model, model_type=model_name, save_path=save_path, feature_extractor=feature_extractor, target_sample_rate=target_sample_rate, 
+                       min_length_samples=min_length_samples, sel_layers=sel_layers, return_numpy=return_numpy,
+                       num_select_frames=num_select_frames,frame_skip=frame_skip, frame_len_sec=frame_len_sec, keep_all=keep_all)
+    

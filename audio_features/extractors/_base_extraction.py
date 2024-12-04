@@ -8,7 +8,6 @@ Last Modified: 11/08/2024
 ##third-party
 import numpy as np
 
-
 class BaseExtractor:
     """
     Base extractor class. Initializes common variables

@@ -8,8 +8,11 @@ Last modified: 11/28/2024
 ##built-in
 import os
 from pathlib import Path 
+from typing import Dict
+##third-party
+import numpy as np
 
-def split_features(features:dict):
+def split_features(features:Dict[str:np.ndarray]) -> Dict[str:np.ndarray]:
     """
     Split feature dict
     :param features: dict, dictionary of features {path: feature vectors}

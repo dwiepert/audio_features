@@ -6,19 +6,14 @@ Last Modified: 12/04/2024
 """
 #IMPORTS
 ##built-in
-
 from pathlib import Path
 import time
-from typing import Union
-
+from typing import Union, Dict
 ##third-party
 import numpy as np
-#ridge regression
-#from sklearn.linear_model import ridge_regression
 from sklearn.linear_model import RidgeCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import RepeatedKFold
-
 ##local
 from ._base_model import BaseModel
 
@@ -29,21 +24,25 @@ class RRegression(BaseModel):
     :param dv: dict, dependent variable(s), keys are stimulus names, values are array like features
     :param dv_type: str, type of feature for documentation purposes
     :param save_path: path like, path to save features to (can be cc path or local path)
+    :param alphas: np.ndarray of alphas to consider for ridge regression
+    :param n_splits: int, number of cross validation splits (default = 5)
+    :param n_repeats: int, number of cross validation repeats (default = 3)
+    :param corr_type: str, specify whether to calculate correlation across features (feature) or times (time)
     :param cci_features: cotton candy interface for saving
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],alphas:np.ndarray=np.logspace(-5,2,num=10), n_splits:int=10, n_repeats:int=20,
-                 scoring:str='neg_mean_absolute_error', corr_type="time",cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
+    def __init__(self, iv:Dict[str:np.ndarray], iv_type:str, dv:Dict[str:np.ndarray], dv_type:str, save_path:Union[str,Path],
+                 alphas:np.ndarray=np.logspace(-5,2,num=10), n_splits:int=5, n_repeats:int=3, corr_type:str="feature",
+                 cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
          
          #ridge specific
          self.n_splits = n_splits
          self.n_repeats = n_repeats
          self.alphas = alphas
-         self.scoring = scoring
          self.corr_type = corr_type
 
-         add_config = {'alphas': self.alphas.tolist(), 'scoring':self.scoring, 'n_splits': self.n_splits,
+         add_config = {'alphas': self.alphas.tolist(), 'n_splits': self.n_splits,
              'correlation_type':self.corr_type, 'n_repeats': self.n_repeats
          }
          
@@ -64,7 +63,7 @@ class RRegression(BaseModel):
         cv = RepeatedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=1)
 
         # try to find optimal alpha
-        self.model = RidgeCV(alphas=self.alphas, cv=cv, scoring=self.scoring)
+        self.model = RidgeCV(alphas=self.alphas, cv=cv)
 
         st = time.time()
         print('Fitting model...')
@@ -82,15 +81,15 @@ class RRegression(BaseModel):
         self._save_model(self.model, self.scaler, eval)     
        
           
-    
-    def score(self, feats, ref_feats, fname):
+    def score(self, feats: Dict[str:np.ndarray], ref_feats: Dict[str:np.ndarray], fname: str)-> tuple[np.ndarray, Dict[str:np.ndarray]]:
         """
-        Calculate average correlation
+        Score ridge regression
 
         :param feats: dict, feature dictionary, stimulus names as keys
         :param ref_feats: dict, feature dictionary of ground truth predicted features, stimulus names as keys
         :param fname: str, name of stimulus to extract for
-        :param r2: averaged correlation across features
+        :return r: np.ndarray, correlations
+        :return: Dictionary of true and predicted values 
         """
         #with open(self.save_path / 'ridge_regression_model.pkl', 'rb') as file:
          #   self.trained_model = pickle.load(file)

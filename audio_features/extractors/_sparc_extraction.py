@@ -20,36 +20,6 @@ import torch
 from ._base_extraction import BaseExtractor
 from sparc import load_model, SPARC, SpeechWave
 
-def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", config:Union[str,Path]=None, ckpt:str=None, use_penn:bool=False,
-                           target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None, keep_all:bool=False):
-    """
-    Set up sparc extractor
-    :param save_path: local path to save extractor configuration information to
-    :param model_name: str, sparc model name, from [en, multi, en+, feature_extraction]
-    :param save_path: local path to save extractor configuration information to
-    :param config: default None, see if configs exist in the Speech articulatory coding github
-    :param ckpt: default None, can load a model checkpoint if desired
-    :param use_penn:bool, specify whether to use pitch tracker
-    :param target_sample_rate: int, target sample rate for model
-    :param min_length_samples: int, minimum length a sample can be to be fed into the model
-    :param return_numpy: bool, true if returning numpy
-    :param keep_all: bool, true if you want to keep all outputs from each batch
-    :return: initialized SPARCExtractor
-    """
-    assert model_name, 'Must give model name for sparc models'
-
-    use_cuda = torch.cuda.is_available()
-    print(f"use cuda: {use_cuda}")
-    if use_cuda: 
-        device = "cuda"
-    else:
-        device = "cpu"
-    model = load_model(model_name=model_name, config=config, ckpt=ckpt, device=device, use_penn=use_penn)
-    #TODO: figure out frame_length_sec
-
-    return SPARCExtractor(model=model, model_type=model_name, save_path=save_path, target_sample_rate=target_sample_rate, return_numpy=return_numpy, min_length_samples=min_length_samples,keep_all=keep_all)
-
-
 class SPARCExtractor(BaseExtractor):
     """
     Extract EMA and other related features with SPARC
@@ -93,7 +63,7 @@ class SPARCExtractor(BaseExtractor):
 
         self.modules= None
     
-    def _temp_sparc_processing(self, wavfiles: List[np.ndarray]):
+    def _temp_sparc_processing(self, wavfiles: List[np.ndarray]) -> SpeechWave:
         """
         Expects that wavfiles is a list of np.ndarrays
         """
@@ -106,7 +76,7 @@ class SPARCExtractor(BaseExtractor):
         wavs = wavs.to(self.model.device)
         return wavs
 
-    def __call__(self,sample:dict):
+    def __call__(self,sample:dict) -> dict:
         """
         Run feature extraction on a snippet of a sample 
 
@@ -176,4 +146,32 @@ class SPARCExtractor(BaseExtractor):
         sample['times'] = times
         return sample
             
-        
+def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", config:Union[str,Path]=None, ckpt:str=None, use_penn:bool=False,
+                           target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None, keep_all:bool=False) -> SPARCExtractor:
+    """
+    Set up sparc extractor
+    :param save_path: local path to save extractor configuration information to
+    :param model_name: str, sparc model name, from [en, multi, en+, feature_extraction]
+    :param save_path: local path to save extractor configuration information to
+    :param config: default None, see if configs exist in the Speech articulatory coding github
+    :param ckpt: default None, can load a model checkpoint if desired
+    :param use_penn:bool, specify whether to use pitch tracker
+    :param target_sample_rate: int, target sample rate for model
+    :param min_length_samples: int, minimum length a sample can be to be fed into the model
+    :param return_numpy: bool, true if returning numpy
+    :param keep_all: bool, true if you want to keep all outputs from each batch
+    :return: initialized SPARCExtractor
+    """
+    assert model_name, 'Must give model name for sparc models'
+
+    use_cuda = torch.cuda.is_available()
+    print(f"use cuda: {use_cuda}")
+    if use_cuda: 
+        device = "cuda"
+    else:
+        device = "cpu"
+    model = load_model(model_name=model_name, config=config, ckpt=ckpt, device=device, use_penn=use_penn)
+    #TODO: figure out frame_length_sec
+
+    return SPARCExtractor(model=model, model_type=model_name, save_path=save_path, target_sample_rate=target_sample_rate, return_numpy=return_numpy, min_length_samples=min_length_samples,keep_all=keep_all)
+

@@ -19,30 +19,6 @@ import torchaudio
 ##local
 from ._base_extraction import BaseExtractor
 
-def set_up_fbank_extractor(save_path:Union[str,Path], num_mel_bins:int=23, frame_length:float=25., frame_shift:float=20.,target_sample_rate:int=16000, min_length_samples:int=0, 
-                 return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5, keep_all:bool=False):
-    """
-    Set up FBANKExtractor
-
-    :param save_path: local path to save extractor configuration information to
-    :param num_mel_bins: int, number of mel bins for fbank extraction. Default=23
-    :param frame_length: float, frame length in ms for extraction. Default=25.
-    :param frame_shift: float, frame shift in ms for extraction. Default=20.
-    :param target_sample_rate: int, target sample rate for model
-    :param min_length_samples: int, minimum length a sample can be to be fed into the model
-    :param return_numpy: bool, true if returning numpy
-    :param num_select_frames: int, default=1. This can safely be set to 1 for chunk size of 100 and non-whisper models. 
-                              This specifies how many frames to select features from. 
-    :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
-                       so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip. 
-    :param keep_all: bool, true if you want to keep all outputs from each batch
-    :return: FBANKExtractor
-    """
-    
-    return FBANKExtractor(save_path=save_path, num_mel_bins=num_mel_bins, frame_length=frame_length, frame_shift=frame_shift, 
-                          target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, return_numpy=return_numpy,
-                          num_select_frames=num_select_frames, frame_skip=frame_skip, keep_all=keep_all)
-
 class FBANKExtractor(BaseExtractor):
     """
     FBANK feature extractor 
@@ -82,7 +58,7 @@ class FBANKExtractor(BaseExtractor):
 
         self.modules = None
     
-    def __call__(self, sample:dict):
+    def __call__(self, sample:dict) -> dict:
         """
         Run feature extraction on a snippet of an audio sample
 
@@ -130,3 +106,27 @@ class FBANKExtractor(BaseExtractor):
         sample['out_features'] = out_features
         sample['times'] = times
         return sample
+
+def set_up_fbank_extractor(save_path:Union[str,Path], num_mel_bins:int=23, frame_length:float=25., frame_shift:float=20.,target_sample_rate:int=16000, min_length_samples:int=0, 
+                 return_numpy:bool=True, num_select_frames:int=1, frame_skip:int=5, keep_all:bool=False) -> FBANKExtractor:
+    """
+    Set up FBANKExtractor
+
+    :param save_path: local path to save extractor configuration information to
+    :param num_mel_bins: int, number of mel bins for fbank extraction. Default=23
+    :param frame_length: float, frame length in ms for extraction. Default=25.
+    :param frame_shift: float, frame shift in ms for extraction. Default=20.
+    :param target_sample_rate: int, target sample rate for model
+    :param min_length_samples: int, minimum length a sample can be to be fed into the model
+    :param return_numpy: bool, true if returning numpy
+    :param num_select_frames: int, default=1. This can safely be set to 1 for chunk size of 100 and non-whisper models. 
+                              This specifies how many frames to select features from. 
+    :param frame_skip: int, default=5. This goes with num_select_frames. For most HF models the window is 20ms, 
+                       so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip. 
+    :param keep_all: bool, true if you want to keep all outputs from each batch
+    :return: FBANKExtractor
+    """
+    
+    return FBANKExtractor(save_path=save_path, num_mel_bins=num_mel_bins, frame_length=frame_length, frame_shift=frame_shift, 
+                          target_sample_rate=target_sample_rate, min_length_samples=min_length_samples, return_numpy=return_numpy,
+                          num_select_frames=num_select_frames, frame_skip=frame_skip, keep_all=keep_all)

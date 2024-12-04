@@ -42,7 +42,7 @@ class BatchExtractor:
     :param pad_silence: bool, true if padding silence
     :param local_path: str/Path, local directory to save config file to if using self.cci_features. 
     """
-    def __init__(self, extractor, save_path:Union[str, Path],  cci_features=None, fnames:List=[], overwrite:bool=False,
+    def __init__(self, extractor, save_path:Union[str, Path],  cci_features=None, fnames:List[str]=[], overwrite:bool=False,
                  batchsz:int=1, chunksz:float=0.1, contextsz:float=8., require_full_context:bool=True, 
                  min_length_samples:float=0, return_numpy:bool=True, pad_silence:bool=False, local_path:Union[str,Path] = None):
         self.extractor = extractor
@@ -156,11 +156,10 @@ class BatchExtractor:
         save_features(sample, self.result_paths['features'][fname], self.result_paths['times'][fname], module_path, self.cci_features)
 
 
-    def __call__(self, sample: Dict):
+    def __call__(self, sample:Dict[str]):
         """
         Take in a sample and perform batched feature extraction on the sample. The sample should be preprocessed and also be windowed using audio_processing.transforms.Window.
         :param sample: dict, audio sample with metadata
-        :return sample: sample post feature extraction
         """
         fname = sample['fname']
         if not self.overwrite:

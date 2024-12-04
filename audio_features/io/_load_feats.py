@@ -7,28 +7,31 @@ Last modified: 11/28/2024
 #IMPORTS
 ##built-in
 from pathlib import Path
-from typing import Union
-
+from typing import Union, Dict
 ##third-party
 import numpy as np
-
 ##local
 from ._split_feats import split_features
 
-def _process_ema(ema_feats:dict):
+def _process_ema(ema_feats:Dict[str:np.ndarray]) -> Dict[str:np.ndarray]:
     """
+    Remove loudness from ema features
+    :param ema_feats: dict of ema feats
+    :param new_feats: dict of ema feats with loudness excluded
     """
     mask = np.ones(14, dtype=bool)
     mask[[12]] = False
+    new_feats = {}
     for f in ema_feats:
         if f != 'path_list':
             temp = ema_feats[f]
             temp = temp[:,mask]
-            ema_feats[f] = temp
+            new_feats[f] = temp
 
-    return ema_feats
+    return new_feats
 
-def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=None, recursive:bool=False, ignore_str:Union[str,list]=None,search_str:Union[str,list]=None):
+def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=None, recursive:bool=False, 
+                  ignore_str:Union[str,list]=None,search_str:Union[str,list]=None) -> Dict[str:Dict[str:np.ndarray]]:
     """
     Load features
 

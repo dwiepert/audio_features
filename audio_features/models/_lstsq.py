@@ -9,13 +9,11 @@ Last Modified: 12/04/2024
 import json
 import os
 from pathlib import Path
-from typing import Union
-
+from typing import Union,Dict
 ##third-party
 import numpy as np
 from sklearn.metrics import r2_score, f1_score,  mean_squared_error
 from sklearn.preprocessing import StandardScaler
-
 ##local
 from ._base_model import BaseModel
 
@@ -31,13 +29,12 @@ class LSTSQRegression(BaseModel):
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path],
+    def __init__(self, iv:Dict[str:np.ndarray], iv_type:str, dv:Dict[str:np.ndarray], dv_type:str, save_path:Union[str,Path],
                  cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
         
         super().__init__(model_type='lstsq', iv=iv, iv_type=iv_type, dv=dv, dv_type=dv_type,
                             config={}, save_path=save_path, cci_features=cci_features, overwrite=overwrite, local_path=local_path)
 
-        
         new_path = self.save_path / 'model'
         self.result_paths['weights']= new_path /'weights'
         self.result_paths['emawav'] = {}
@@ -50,7 +47,7 @@ class LSTSQRegression(BaseModel):
     
     def _check_previous(self):
         """
-        Check if weights already exist and load them
+        Check if weights already exist and load them - LSTSQ specific (override BaseModel)
         """
         self.weights_exist = False
         if self.cci_features is not None:
@@ -105,7 +102,7 @@ class LSTSQRegression(BaseModel):
         with open(str(self.result_paths['train_eval'])+'.json', 'w') as f:
             json.dump(metrics,f)
 
-    def score(self, feats, ref_feats, fname):
+    def score(self, feats:Dict[str:np.ndarray], ref_feats:Dict[str:np.ndarray], fname:str) -> tuple[np.ndarray, Dict[str:np.ndarray]]:
         """
         Extract residuals for a set of features
 
@@ -113,6 +110,7 @@ class LSTSQRegression(BaseModel):
         :param ref_feats: dict, feature dictionary of ground truth predicted features, stimulus names as keys
         :param fname: str, name of stimulus to extract for
         :return r: extracted residuals
+        :return: Dictionary of true and predicted values 
         """
         if self.cci_features is not None:
             if self.cci_features.exists_object(self.result_paths['metric'][fname]) and not self.overwrite:
