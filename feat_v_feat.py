@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 #local
 from audio_features.io import DatasetSplitter, load_features, phoneIdentity, wordIdentity, align_times, Identity
-from audio_features.models import LSTSQRegression, RRegression, LinearClassification
+from audio_features.models import LSTSQRegression, RRegression, LinearClassification, residualPCA
 from audio_preprocessing.io import select_stimuli
 
 if __name__ == "__main__":
@@ -211,11 +211,20 @@ if __name__ == "__main__":
                                          dv_type=args.feat2_type,
                                          metric_type=args.metric_type,
                                          save_path=new_path,
-                                         lassification_type=args.function,
+                                         classification_type=args.function,
                                          cci_features=cci_features,
                                          overwrite=args.overwrite,
                                          local_path=local_path)
 
+        elif args.function == 'pca':
+            print('PCA')
+            model = residualPCA(iv=train_feats1,
+                                iv_type='lstsq',
+                                save_path=new_path,
+                                cci_features=cci_features,
+                                overwrite=args.overwrite,
+                                local_path=local_path
+                                )
         else:
             raise NotImplementedError(f'{args.function} is not implemented')
 
@@ -232,12 +241,12 @@ if __name__ == "__main__":
                 true = np.vstack((true, tpd['true']))
                 pred = np.vstack((pred, tpd['pred']))
 
-        metrics = model.eval_model(true, pred)
-        
+        if args.function != 'pca':
+            metrics = model.eval_model(true, pred)
 
-        os.makedirs(model.result_paths['test_eval'].parent, exist_ok=True)
-        with open(str(model.result_paths['test_eval'])+'.json', 'w') as f:
-            json.dump(metrics,f)
+            os.makedirs(model.result_paths['test_eval'].parent, exist_ok=True)
+            with open(str(model.result_paths['test_eval'])+'.json', 'w') as f:
+                json.dump(metrics,f)
         
 
     

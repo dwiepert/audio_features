@@ -1,4 +1,4 @@
-__version__ = '0.5.1'
+__version__ = '0.5.5'
 
 #change log:
 # 0.0.0: first version
@@ -15,5 +15,7 @@ __version__ = '0.5.1'
 # 0.4.1: classification debugged
 # 0.5.0: structure overhaul, new LSTSQ residual extraction debugged
 # 0.5.1: new ridge regression debugged
-# 0.5.2: new identity feature extraction debugged
-# 0.5.3: new classification debugged
+# 0.5.2: PCA added
+# 0.5.3: new identity feature extraction debugged
+# 0.5.4: new classification debugged
+# 0.5.5: PCA added

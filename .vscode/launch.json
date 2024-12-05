@@ -197,6 +197,40 @@
             ]
         },
         {
+            "name": "Python Debugger: PCA",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--feat_dir1",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/lstsq/lstsq_ema_to_wavlm-large.9/",
+                "--feat2_times",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/old_features/old_features/hf/wavlm-large/",
+                "--feat1_times",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/old_features/old_features/hf/wavlm-large/",
+                "--feat_dir2",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/lstsq/lstsq_ema_to_wavlm-large.9/",
+                "--feat1_type",
+                "lstsq",
+                "--feat2_type",
+                "lstsq",
+                "--function=pca",
+                "--out_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/lstsq",
+                 "--stimulus_dir",
+                "/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
+                "--session",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "--overwrite"
+                
+            ]
+        },
+        {
             "name": "Python Debugger: RidgeRegression",
             "type": "debugpy",
             "request": "launch",

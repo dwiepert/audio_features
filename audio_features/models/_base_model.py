@@ -16,6 +16,7 @@ import numpy as np
 from database_utils.functions import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import RidgeCV, LogisticRegressionCV
+from sklearn.decomposition import PCA
 
 class BaseModel:
     """
@@ -161,7 +162,7 @@ class BaseModel:
             self.model=None
             self.scaler=None
 
-    def _save_model(self, model:Union[LogisticRegressionCV, RidgeCV], scaler:StandardScaler):
+    def _save_model(self, model:Union[LogisticRegressionCV, RidgeCV, PCA], scaler:StandardScaler):
         """
         Save a trained model/scaler and train evaluation metrics
 

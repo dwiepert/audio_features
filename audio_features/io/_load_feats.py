@@ -105,7 +105,7 @@ def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=No
 
     if feature_type == 'ema':
         features = _process_ema(features)
-
+    
     return split_features(features)
 
 
