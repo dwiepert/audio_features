@@ -225,29 +225,32 @@ if __name__ == "__main__":
                                 overwrite=args.overwrite,
                                 local_path=local_path
                                 )
+        elif args.function == "extract":
+            print('Extraction completed')
         else:
             raise NotImplementedError(f'{args.function} is not implemented')
 
-        print(f'Scoring split {i}')
-        true = None
-        pred = None
-        for k in tqdm(list(test_feats1.keys())):
-            out, tpd = model.score(test_feats1[k], test_feats2[k], k)
+        if args.function != "extract":
+            print(f'Scoring split {i}')
+            true = None
+            pred = None
+            for k in tqdm(list(test_feats1.keys())):
+                out, tpd = model.score(test_feats1[k], test_feats2[k], k)
 
-            if true is None:
-                true = tpd['true']
-                pred = tpd['pred']
-            else:
-                true = np.vstack((true, tpd['true']))
-                pred = np.vstack((pred, tpd['pred']))
+                if true is None:
+                    true = tpd['true']
+                    pred = tpd['pred']
+                else:
+                    true = np.vstack((true, tpd['true']))
+                    pred = np.vstack((pred, tpd['pred']))
 
-        if args.function != 'pca':
-            metrics = model.eval_model(true, pred)
+            if args.function != 'pca':
+                metrics = model.eval_model(true, pred)
 
-            os.makedirs(model.result_paths['test_eval'].parent, exist_ok=True)
-            with open(str(model.result_paths['test_eval'])+'.json', 'w') as f:
-                json.dump(metrics,f)
-        
+                os.makedirs(model.result_paths['test_eval'].parent, exist_ok=True)
+                with open(str(model.result_paths['test_eval'])+'.json', 'w') as f:
+                    json.dump(metrics,f)
+            
 
     
 
