@@ -26,6 +26,7 @@ def _process_ema(ema_feats:Dict[str,np.ndarray]) -> Dict[str,np.ndarray]:
         if f != 'path_list':
             temp = ema_feats[f]
             temp = temp[:,mask]
+            assert temp.shape[1] == 13
             new_feats[f] = temp
 
     return new_feats
@@ -101,7 +102,7 @@ def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=No
     features['path_list'] = paths
 
     if feature_type == 'ema':
-        _process_ema(features)
+        features = _process_ema(features)
 
     return split_features(features)
 
