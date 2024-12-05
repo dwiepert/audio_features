@@ -28,6 +28,8 @@ def _process_ema(ema_feats:Dict[str,np.ndarray]) -> Dict[str,np.ndarray]:
             temp = temp[:,mask]
             assert temp.shape[1] == 13
             new_feats[f] = temp
+        else:
+            new_feats[f] = ema_feats[f]
 
     return new_feats
 
