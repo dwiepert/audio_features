@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Union,Dict
 ##third-party
 import numpy as np
-from sklearn.metrics import r2_score, mean_squared_error
+from database_utils.functions import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import RidgeCV, LogisticRegressionCV
 
@@ -161,7 +161,7 @@ class BaseModel:
             self.model=None
             self.scaler=None
 
-    def _save_model(self, model:Union[LogisticRegressionCV, RidgeCV], scaler:StandardScaler, eval:Dict[str,float]):
+    def _save_model(self, model:Union[LogisticRegressionCV, RidgeCV], scaler:StandardScaler):
         """
         Save a trained model/scaler and train evaluation metrics
 
@@ -178,10 +178,6 @@ class BaseModel:
             pickle.dump(model, file)
         with open(str(self.result_paths['scaler'])+'.pkl', 'wb') as file:
             pickle.dump(scaler, file)
-        
-        os.makedirs(str(self.result_paths['train_eval'].parent), exist_ok=True)
-        with open(str(self.result_paths['train_eval'])+'.json', 'w') as f:
-            json.dump(eval,f)
         
 
     def _save_metrics(self, metric:Union[np.ndarray,dict], fname:str, name:str='metric'):
@@ -220,9 +216,9 @@ class BaseModel:
         :return metrics: dictionary of values
         """
         r2 = r2_score(true, pred)
-        rmse = np.sqrt(mean_squared_error(true, pred))
+        r = rmse(true, pred)
         #f1 = f1_score(true, pred)
-        metrics = {'r2': float(r2), 'rmse':float(rmse)}
+        metrics = {'r2': float(r2), 'rmse':float(r)}
         return metrics
         
     

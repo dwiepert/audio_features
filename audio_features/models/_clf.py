@@ -13,7 +13,8 @@ import numpy as np
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score, balanced_accuracy_score
 ##local
 from ._base_model import BaseModel
 
@@ -77,7 +78,8 @@ class LinearClassification(BaseModel):
         acc = accuracy_score(true, pred)
         rocauc = roc_auc_score(true, pred)
         prec, recall, fbeta, n = precision_recall_fscore_support(true, pred)
-        metrics = {'accuracy': np.array([acc]), 'rocauc': np.array([rocauc]), 'precision': np.array([prec]), 'recall': np.array([recall]), 'fbeta': np.array([fbeta])}
+        balanced_acc = balanced_accuracy_score(true, pred)
+        metrics = {'accuracy': acc,'balanced_accuracy':balanced_acc, 'rocauc': rocauc, 'precision': prec, 'recall': recall, 'fbeta': fbeta}
 
         return metrics
 

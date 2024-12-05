@@ -76,11 +76,11 @@ class LSTSQRegression(BaseModel):
         if self.weights_exist and not self.overwrite:
             assert self.wt is not None, 'Weights do not exist. Loading weights went wrong.'
             print('Weights already exist and should not be overwritten')
-            return
+        else:
         
-        x, residuals, rank, s = np.linalg.lstsq(self.iv, self.dv, rcond=None)
-        
-        self.wt = x 
+            x, residuals, rank, s = np.linalg.lstsq(self.iv, self.dv, rcond=None)
+            
+            self.wt = x 
 
         #train metrics
         pred_dv = self.iv @ self.wt
@@ -112,14 +112,15 @@ class LSTSQRegression(BaseModel):
         :return r: extracted residuals
         :return: Dictionary of true and predicted values 
         """
-        if self.cci_features is not None:
-            if self.cci_features.exists_object(self.result_paths['metric'][fname]) and not self.overwrite:
-                return 
-        else:
-            if Path(str(self.result_paths['metric'][fname]) + '.npz').exists() and not self.overwrite:
-                return 
+        #if self.cci_features is not None:
+        #    if self.cci_features.exists_object(self.result_paths['metric'][fname]) and not self.overwrite:
+        #        return 
+        #else:
+        #    if Path(str(self.result_paths['metric'][fname]) + '.npz').exists() and not self.overwrite:
+        #        return 
         
-        #assert self.wt is not None, 'Regression has not been run yet. Please do so.'
+        assert self.wt is not None, 'Regression has not been run yet. Please do so.'
+        
         f = feats['features']
         t = feats['times']
         rf = ref_feats['features']

@@ -6,6 +6,8 @@ Last Modified: 12/04/2024
 """
 #IMPORTS
 ##built-in
+import json
+import os
 from pathlib import Path
 import time
 from typing import Union, Dict
@@ -58,27 +60,28 @@ class RRegression(BaseModel):
         """
         if self.weights_exist and not self.overwrite:
             print('Model already fitted and should not be overwritten')
-            return
-        # cross-validation
-        cv = RepeatedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=1)
+        else:   
+            # cross-validation
+            cv = RepeatedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=1)
 
-        # try to find optimal alpha
-        self.model = RidgeCV(alphas=self.alphas, cv=cv)
+            # try to find optimal alpha
+            self.model = RidgeCV(alphas=self.alphas, cv=cv)
 
-        st = time.time()
-        print('Fitting model...')
-        # Fit model with best alpha
-        self.scaler = StandardScaler().fit(self.iv)
-        self.model.fit(self.scaler.transform(self.iv), self.dv)
-        et = time.time()
+            st = time.time()
+            print('Fitting model...')
+            # Fit model with best alpha
+            self.scaler = StandardScaler().fit(self.iv)
+            self.model.fit(self.scaler.transform(self.iv), self.dv)
+            et = time.time()
+            total = (et-st)/60
+            print(f'Model fit in {total} minutes.')
+            self._save_model(self.model, self.scaler)    
 
         pred = self.model.predict(self.scaler.transform(self.iv))
-        eval = self.eval_model(self.dv, pred)
-
-        total = (et-st)/60
-        print(f'Model fit in {total} minutes.')
-
-        self._save_model(self.model, self.scaler, eval)     
+        eval = self.eval_model(self.dv, pred)    
+        os.makedirs(str(self.result_paths['train_eval'].parent), exist_ok=True)
+        with open(str(self.result_paths['train_eval'])+'.json', 'w') as f:
+            json.dump(eval,f)
        
           
     def score(self, feats: Dict[str,np.ndarray], ref_feats: Dict[str,np.ndarray], fname: str)-> tuple[np.ndarray, Dict[str,np.ndarray]]:
@@ -93,13 +96,13 @@ class RRegression(BaseModel):
         """
         #with open(self.save_path / 'ridge_regression_model.pkl', 'rb') as file:
          #   self.trained_model = pickle.load(file)
-        if fname in self.result_paths['metric']:
-            if self.cci_features is not None:
-                if self.cci_features.exists_object(self.result_paths['metric'][fname]) and not self.overwrite:
-                    return 
-            else:
-                if Path(str(self.result_paths['metric'][fname]) + '.npz').exists() and not self.overwrite:
-                    return 
+        #if fname in self.result_paths['metric']:
+        #    if self.cci_features is not None:
+        #        if self.cci_features.exists_object(self.result_paths['metric'][fname]) and not self.overwrite:
+        #            return 
+        #    else:
+        #        if Path(str(self.result_paths['metric'][fname]) + '.npz').exists() and not self.overwrite:
+        #            return 
         
         #assert self.pearson_coeff is not None, 'Regression has not been run yet. Please do so.'
         assert self.model is not None, 'Regression has not been run yet. Please do so.'
