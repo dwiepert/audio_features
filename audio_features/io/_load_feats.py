@@ -66,14 +66,14 @@ def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=No
             for f in paths:
                 include = True
                 for s in ignore_str:
-                    if s in str(f):
+                    if s in f.name:
                         include = False
                 if include:
                     new_paths.append(f)
 
             paths=new_paths
         else:
-            paths = [f for f in paths if ignore_str not in str(f)] #don't load times files
+            paths = [f for f in paths if ignore_str not in f.name] #don't load times files
 
     if search_str is not None:
         if isinstance(search_str, list):
@@ -81,15 +81,15 @@ def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=No
             
             for f in paths:
                 include = False
-                for s in ignore_str:
-                    if s in str(f):
+                for s in search_str:
+                    if s in f.name:
                         include = True
                 if include:
                     new_paths.append(f)
 
             paths=new_paths
         else:
-            paths = [f for f in paths if search_str in str(f)]
+            paths = [f for f in paths if search_str in f.name]
 
 
     features = {}

@@ -121,7 +121,7 @@ if __name__ == "__main__":
         save_dir = Path(args.feat_dir2) / f'aligned_{args.feat1_type}'
         print(save_dir)
         identity = Identity(identity_type=args.feat2_type, features=aligned_feats1, identity_dir=args.feat_dir2,
-                            aligng_dir = save_dir, pretrained_path=pretrained_path, cci_features=cci_features,
+                            align_dir = save_dir, pretrained_path=pretrained_path, cci_features=cci_features,
                             recursive=args.recursive, overwrite=args.overwrite)
         
         temp = identity.get_aligned_feats()

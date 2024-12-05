@@ -43,7 +43,7 @@ class Identity:
         self.align_dir = Path(align_dir)
         self.cci_features = cci_features
         self.recursive=recursive
-        self.phone_identity = {}
+        self.identity = {}
         self.overwrite = overwrite
 
         self._load_aligned_feats()
@@ -51,7 +51,7 @@ class Identity:
         if self.aligned_feats is None or self.overwrite:
             self._load_id_feats()
 
-            if self.identity is None or self.overwrite:
+            if not bool(self.identity) or self.overwrite:
                 self._generate_id_feats()
             
             self._identity_to_ind()
@@ -78,7 +78,6 @@ class Identity:
     def _load_id_feats(self):
         """
         """
-        self.identity = None
         olddata = load_features(self.identity_dir, self.identity_type, self.cci_features, self.recursive, search_str='_identity')
         newdata = load_features(self.identity_dir, self.identity_type, self.cci_features, self.recursive, ignore_str=['_identity', '_times'])
         times = load_features(self.identity_dir, self.identity_type, self.cci_features, self.recursive, search_str='_times')
@@ -89,7 +88,6 @@ class Identity:
             tstories = set(list(times.keys()))
 
             if ostories == set(self.fnames) and nstories == set(self.fnames) and tstories == set(self.fnames):
-                self.identity = {}
                 for story in self.fnames:
                     self.identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
 
@@ -216,7 +214,7 @@ class Identity:
             id_target = []
             reg_target = []
             pooled_feats = []
-            times = []
+            tms = []
             for i in range(pt.shape[0]):
                 if i % 1000 == 0:
                     print(f"{i}/{pt.shape[0]} completed.")
@@ -238,12 +236,12 @@ class Identity:
                     id_target.append(self.vocab[p])
                     reg_target.append(pf[i])
                     pooled_feats.append(np.mean(np.array(pool), axis=0))
-                    times.append(np.array([start_t, end_t]))
+                    tms.append(np.array([start_t, end_t]))
 
             p1 = np.row_stack(pooled_feats)
-            t1 = np.row_stack(id_target)
+            t1 = np.array(id_target)
             at1 = np.row_stack(reg_target)
-            tm1 = np.row_stack(times)
+            tm1 = np.row_stack(tms)
 
 
             new_feats[story] = p1
