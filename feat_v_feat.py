@@ -19,7 +19,7 @@ import numpy as np
 from tqdm import tqdm
 
 #local
-from audio_features.io import DatasetSplitter, load_features, phoneIdentity, wordIdentity, align_times, Identity
+from audio_features.io import DatasetSplitter, load_features, align_times, Identity
 from audio_features.models import LSTSQRegression, RRegression, LinearClassification, residualPCA
 from audio_preprocessing.io import select_stimuli
 
