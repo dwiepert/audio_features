@@ -77,7 +77,7 @@ class LSTSQRegression(BaseModel):
             assert self.wt is not None, 'Weights do not exist. Loading weights went wrong.'
             print('Weights already exist and should not be overwritten')
         else:
-        
+            print(f'DV shape: {self.dv.shape}')
             x, residuals, rank, s = np.linalg.lstsq(self.iv, self.dv, rcond=None)
             
             self.wt = x 

@@ -71,6 +71,7 @@ class RRegression(BaseModel):
             print('Fitting model...')
             # Fit model with best alpha
             self.scaler = StandardScaler().fit(self.iv)
+            print(f'DV shape: {self.dv.shape}')
             self.model.fit(self.scaler.transform(self.iv), self.dv)
             et = time.time()
             total = (et-st)/60
