@@ -114,7 +114,10 @@ class BaseModel:
                 concat_times = t
                 start_ind = 0
             else:
-                concat = np.vstack((concat, n))
+                if n.ndim ==1:
+                    concat = np.concatenate((concat, n))
+                else:
+                    concat = np.vstack((concat, n))
                 concat_times = np.vstack((concat_times,t))
                 start_ind = concat.shape[0]-1
             

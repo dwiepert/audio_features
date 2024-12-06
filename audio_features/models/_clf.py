@@ -13,7 +13,7 @@ import time
 from typing import Union
 ##third-party
 import numpy as np
-from sklearn.linear_model import LogisticRegressionCV
+from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.model_selection import RepeatedStratifiedKFold
@@ -65,6 +65,7 @@ class LinearClassification(BaseModel):
             self.scaler = StandardScaler().fit(self.iv)
             cv = RepeatedStratifiedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=1)
 
+            #self.model = LogisticRegression(max_iter=1000)
             self.model = LogisticRegressionCV(cv=cv,random_state=1, max_iter=1000)
 
             #if self.classification_type=='multilabel_clf':

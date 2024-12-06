@@ -1,5 +1,8 @@
 TODO STUFF:
-1. Add config for all extractors, save out config not args
+1. Check that word and phone features are saved correctly and look right 
+2. Check what is going wrong with evaluation of word embeddings
+3. Debug classification
+4. Result analysis woohoo
 
 # Audio Features
 Package for extracting various features from audio stimuli

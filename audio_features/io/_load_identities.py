@@ -48,10 +48,10 @@ class Identity:
 
         self._load_aligned_feats()
 
-        if self.aligned_feats is None or self.overwrite:
+        if self.aligned_feats is None:
             self._load_id_feats()
 
-            if not bool(self.identity) or self.overwrite:
+            if not bool(self.identity):
                 self._generate_id_feats()
             
             self._identity_to_ind()
@@ -61,7 +61,7 @@ class Identity:
         """
         """
         self.aligned_feats=None
-        feats = load_features(self.align_dir, self.identity_type, self.cci_features, self.recursive, ignore_str=['_idtargets','_regtargets'])
+        feats = load_features(self.align_dir, self.identity_type, self.cci_features, self.recursive, ignore_str=['_idtargets','_regtargets', '_times'])
         id_targets = load_features(self.align_dir, self.identity_type,  self.cci_features, self.recursive, search_str='_idtargets')
         reg_targets = load_features(self.align_dir, self.identity_type,  self.cci_features, self.recursive, search_str='_regtargets')
         times = load_features(self.align_dir, self.identity_dir,  self.cci_features, self.recursive, search_str='_times')
@@ -242,6 +242,8 @@ class Identity:
             t1 = np.array(id_target)
             at1 = np.row_stack(reg_target)
             tm1 = np.row_stack(tms)
+
+            assert p1.shape[0] == t1.shape[0] and t1.shape[0] == at1.shape[0] and at1.shape[0] == tm1.shape[0], f"Mismatch size error in {story}"
 
 
             new_feats[story] = p1

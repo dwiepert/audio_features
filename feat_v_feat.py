@@ -209,7 +209,6 @@ if __name__ == "__main__":
                                          iv_type=args.feat1_type,
                                          dv=train_feats2,
                                          dv_type=args.feat2_type,
-                                         metric_type=args.metric_type,
                                          save_path=new_path,
                                          classification_type=args.function,
                                          n_splits=args.cv_splits,

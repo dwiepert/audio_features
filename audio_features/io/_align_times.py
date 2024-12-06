@@ -25,7 +25,11 @@ def align_times(feats:Dict[str,np.ndarray], times:Dict[str,np.ndarray]) -> Dict[
         f = feats[s]
         t = times[s]
         sort_i = np.argsort(t, axis=0)[:,0]
-        f = f[sort_i,:]
+
+        if f.ndim == 1:
+            f = f[sort_i]
+        else:
+            f = f[sort_i,:]
         t = t[sort_i,:]
         features[s] = {'features': f, 'times': t}
     return features
