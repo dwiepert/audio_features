@@ -16,7 +16,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.model_selection import RepeatedStratifiedKFold, RepeatedKFold, StratifiedKFold
 ##local
 from database_utils.functions import *
 from ._base_model import BaseModel
@@ -63,10 +63,13 @@ class LinearClassification(BaseModel):
             print('Fitting model...')
 
             self.scaler = StandardScaler().fit(self.iv)
-            cv = RepeatedStratifiedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=1)
+            #cv = StratifiedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=1)
 
-            #self.model = LogisticRegression(max_iter=1000)
-            self.model = LogisticRegressionCV(cv=cv,random_state=1, max_iter=1000)
+            scaled_iv = self.scaler.transform(self.iv)
+            self.dv = self._process_targets(self.dv)
+
+            self.model = LogisticRegression(max_iter=1000)
+            #self.model = LogisticRegressionCV(cv=self.n_splits,random_state=1, max_iter=1000)
 
             #if self.classification_type=='multilabel_clf':
             #    self.model = MultiOutputClassifier(self.model)
@@ -74,9 +77,8 @@ class LinearClassification(BaseModel):
             #cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
 
             #self.model = RidgeClassifierCV(alphas=self.alphas, cv=cv,scoring=self.scoring)
-            self.dv = self._process_targets(self.dv)
             
-            self.model.fit(self.scaler.transform(self.iv), self.dv)
+            self.model.fit(scaled_iv, self.dv)
             et = time.time()
             total = (et-st)/60
             print(f'Model fit in {total} minutes.')
