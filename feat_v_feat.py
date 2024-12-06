@@ -212,6 +212,8 @@ if __name__ == "__main__":
                                          metric_type=args.metric_type,
                                          save_path=new_path,
                                          classification_type=args.function,
+                                         n_splits=args.cv_splits,
+                                         n_repeats=args.n_boots,
                                          cci_features=cci_features,
                                          overwrite=args.overwrite,
                                          local_path=local_path)
