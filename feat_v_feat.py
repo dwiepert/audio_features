@@ -133,6 +133,11 @@ if __name__ == "__main__":
             aligned_feats1 = align_times(temp['features'], temp['times'])
             aligned_feats2 = align_times(temp['reg_targets'], temp['times'])
     
+    for t in aligned_feats1:
+        f = aligned_feats1[t]['features']
+        t = aligned_feats2[t]['features']
+        assert t.shape[0] == f.shape[0], f"Shape not aligned for {t}"
+
     ## SAVING
     save_path = Path(f'{args.function}_{args.feat1_type}_to_{args.feat2_type}')
     if cci_features is None:
@@ -242,8 +247,8 @@ if __name__ == "__main__":
                     true = tpd['true']
                     pred = tpd['pred']
                 else:
-                    true = np.vstack((true, tpd['true']))
-                    pred = np.vstack((pred, tpd['pred']))
+                    true = np.concatenate((true, tpd['true']), axis=0)
+                    pred = np.concatenate((pred, tpd['pred']), axis=0)
 
             if args.function != 'pca':
                 metrics = model.eval_model(true, pred)
