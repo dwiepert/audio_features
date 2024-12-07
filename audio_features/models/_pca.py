@@ -42,6 +42,7 @@ class residualPCA(BaseModel):
     
     def _fit(self):
         """
+        Fit PCA
         """
         if self.weights_exist and not self.overwrite:
             print('Model already fitted and should not be overwritten')
@@ -58,12 +59,12 @@ class residualPCA(BaseModel):
     
     def score(self, feats:Dict[str,np.ndarray], feats2:Dict[str,np.ndarray], fname:str) -> tuple[np.ndarray, Dict[str,np.ndarray]]:
         """
-        Extract residuals for a set of features
+        Extract PCA features
 
         :param feats: dict, feature dictionary, stimulus names as keys
         :param ref_feats: dict, feature dictionary of ground truth predicted features, stimulus names as keys
         :param fname: str, name of stimulus to extract for
-        :return r: extracted residuals
+        :return pca: extracted pca features
         :return: Dictionary of true and predicted values 
         """
         #if self.cci_features is not None:

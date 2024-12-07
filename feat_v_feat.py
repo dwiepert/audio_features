@@ -2,7 +2,7 @@
 Perform functions that take in two pairs of features and run functions on them. 
 
 Author(s): Daniela Wiepert, Lasya Yakkala, Rachel Yamamoto
-Last modified: 11/27/2024
+Last modified: 12/06/2024
 """
 #%%
 #IMPORTS
@@ -58,7 +58,6 @@ if __name__ == "__main__":
                                    "Overrides --sessions and --subjects.")
     #Model specific
     model_args = parser.add_argument_group('model', 'model related arguments')
-    model_args.add_argument("--metric_type", type=str)
     model_args.add_argument("--cv_splits", type=int, default=5)
     model_args.add_argument("--n_boots", type=int, default=3)
     model_args.add_argument("--corr_type", type=str, default='feature', help="feature or time")
@@ -67,13 +66,12 @@ if __name__ == "__main__":
     data_args.add_argument("--split_path", type=str)
     data_args.add_argument("--n_splits", type=int, default=5)
     data_args.add_argument("--train_ratio", type=float, default=.8)
-    data_args.add_argument("--val_ratio",type=float, default=0.)
-
+  
     args = parser.parse_args()
     
     args.out_dir = Path(args.out_dir)
 
-    if args.function != 'clf':
+    if 'clf' not in args.function or args.function != 'pca':
         assert args.feat_dir2 is not None, 'Must give two features if not doing classification.'
 
     if (args.out_bucket is not None) and (args.out_bucket != ''):
@@ -106,7 +104,9 @@ if __name__ == "__main__":
 
     aligned_feats1 = align_times(feats1, feat1_times)
 
-    if args.feat2_type not in ['word', 'phone']:
+    if args.function == 'pca':
+        aligned_feats2 = aligned_feats1
+    elif args.feat2_type not in ['word', 'phone'] and args.function != 'pca':
         feats2 = load_features(args.feat_dir2, args.feat2_type, cci_features, args.recursive, ignore_str='times')
         if args.feat2_times is None:
             args.feat2_times = args.feat_dir2
@@ -154,7 +154,7 @@ if __name__ == "__main__":
         else:
             args.split_path = save_path /'splits'
 
-        splitter = DatasetSplitter(stories=stimulus_names, output_dir=args.split_path, num_splits=args.n_splits, train_ratio=args.train_ratio, val_ratio=args.val_ratio)
+        splitter = DatasetSplitter(stories=stimulus_names, output_dir=args.split_path, num_splits=args.n_splits, train_ratio=args.train_ratio, val_ratio=0.)
         splits = splitter.load_splits()
         
     else:
@@ -225,7 +225,7 @@ if __name__ == "__main__":
         elif args.function == 'pca':
             print('PCA')
             model = residualPCA(iv=train_feats1,
-                                iv_type='lstsq',
+                                iv_type=args.feat1_type,
                                 save_path=new_path,
                                 cci_features=cci_features,
                                 overwrite=args.overwrite,

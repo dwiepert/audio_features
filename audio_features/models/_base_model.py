@@ -34,7 +34,7 @@ class BaseModel:
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, model_type:str, iv:Dict[str,np.ndarray], iv_type:str, dv:Dict[str,np.ndarray], dv_type:str, config:dict, 
+    def __init__(self, model_type:str, iv:Dict[str,Dict[str,np.ndarray]], iv_type:str, dv:Dict[str,Dict[str,np.ndarray]], dv_type:str, config:dict, 
                  save_path:Union[str,Path], cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
         
         self.model_type = model_type

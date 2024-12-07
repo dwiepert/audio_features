@@ -2,7 +2,7 @@
 Load phone or word features
 
 Author(s): Aditya Vaidya, Daniela Wiepert, Others unknown
-Last modified: 12/04/2024
+Last modified: 12/06/2024
 """
 
 #IMPORTS
@@ -10,7 +10,7 @@ Last modified: 12/04/2024
 import os
 import json
 import time
-from typing import List, Optional
+from typing import List, Optional, Dict, Union
 from pathlib import Path
 ##third-party
 import numpy as np
@@ -29,9 +29,19 @@ _bad_words = ['{IG}', '{CG}','{NS}', 'SP\x7f', 'BR ', 'BR', 'LS', 'NS', 'SP', 'B
 class Identity:
     """
     Identity features
+    
+    :param identity_type: str, phone or word
+    :param features: feature dictionary mapping stories to feature arrays
+    :param identity_dir: path-like object pointing to directory with base identity features (raw phones/times from the audio - not yet aligned with extracted features)
+    :param align_dir: path-like object pointing to directory with aligned features (downsampled extracted feats, new times, phones/words that overlap with features)
+    :param pretrained_path: str, optional path to pretrained SemanticModel. Only required for word identity.
+    :param cci_features: cotton candy interface for accessing bucket
+    :param recursive: bool, indicate whether to recursively load features
+    :param overwrite: bool, indicate whether to overwrite aligned features (will not overwrite base identity features.)
     """
 
-    def __init__(self, identity_type:str, features:dict, identity_dir:str, align_dir:str, pretrained_path:Optional[str], cci_features=None, recursive:bool=False, overwrite:bool=False):
+    def __init__(self, identity_type:str, features:Dict[str, np.ndarray], identity_dir:Union[str,Path], 
+                 align_dir:Union[str,Path], pretrained_path:Optional[str], cci_features=None, recursive:bool=False, overwrite:bool=False):
         self.identity_type=identity_type
         assert self.identity_type in ['word','phone']
         self.pretrained_path = pretrained_path
@@ -59,6 +69,8 @@ class Identity:
 
     def _load_aligned_feats(self):
         """
+        Load aligned features and check if you have aligned features for every fname in the extracted feature dictionary. If not, do not set
+        self.aligned_feats
         """
         self.aligned_feats=None
         feats = load_features(self.align_dir, self.identity_type, self.cci_features, self.recursive, ignore_str=['_idtargets','_regtargets', '_times'])
@@ -77,6 +89,8 @@ class Identity:
         
     def _load_id_feats(self):
         """
+        Load base identity features. Check if one exists for all fname in extracted feature dictionary. If not, do not set
+        self.identity
         """
         olddata = load_features(self.identity_dir, self.identity_type, self.cci_features, self.recursive, search_str='_identity')
         newdata = load_features(self.identity_dir, self.identity_type, self.cci_features, self.recursive, ignore_str=['_identity', '_times'])
@@ -92,12 +106,18 @@ class Identity:
                     self.identity[story] = {'original_data':olddata[story], 'feature_data':newdata[story], 'times': times[story]}
 
     def _generate_id_feats(self):
+        """
+        Generate identity feats based on whether it is set to 'phone' or 'word'
+        """
         if self.identity_type == 'phone':
             self._generate_phone_feats()
         else:
             self._generate_word_feats()
     
     def _generate_phone_feats(self):
+        """
+        Generate phone feats and save
+        """
         self.artdict = cc.get_interface('subcortical', verbose=False).download_json('artdict')
         self.phonseqs = get_story_phonseqs(self.fnames) #(phonemes, phoneme_times, tr_times)
 
@@ -111,7 +131,13 @@ class Identity:
             ### CHECK  feature data doesn't need to be as type int???
             self._save_identity(story, {'original_data': olddata, 'feature_data': arthistseq[0], 'times': arthistseq[2]})
     
-    def _save_identity(self, story, data_dict):
+    def _save_identity(self, story:str, data_dict:Dict[str, np.ndarray]):
+        """
+        Save identity features
+
+        :param story: str, story name
+        :param data_dict: dictionary with identity feature data
+        """
         self.identity[story] = data_dict
         if self.cci_features is not None:
             self.cci_features.upload_raw_array(str(self.identity_dir/story) + '_identity', data_dict['original_data'])
@@ -159,6 +185,9 @@ class Identity:
         return (final_data, data.split_inds, data.data_times, data.tr_times)
 
     def _generate_word_feats(self):
+        """
+        Generate word identity features and save
+        """
         self.model = SemanticModel.load(self.pretrained_path)
         self.wordseqs = get_story_wordseqs(self.fnames)
 
@@ -171,6 +200,9 @@ class Identity:
             self._save_identity(story,{'original_data': olddata, 'feature_data': newdata, 'times':times})
     
     def _identity_to_ind(self):
+        """
+        Create a vocabulary for an identity. Each unique value is assigned an index.
+        """
         vdir = self.identity_dir / 'vocab.json'
         if vdir.exists():
             with open(str(vdir), 'r') as f:
@@ -197,6 +229,10 @@ class Identity:
                 json.dump(self.vocab, f)
     
     def _generate_aligned_feats(self):
+        """
+        Downsample extracted features through mean-pooling and save aligned identity features/times
+    
+        """
         new_feats = {}
         id_targets = {}
         reg_targets = {}
@@ -269,5 +305,10 @@ class Identity:
 
         self.aligned_feats =  {'features':new_feats, 'identity_targets': id_targets, 'reg_targets':reg_targets, 'times':tdict}
     
-    def get_aligned_feats(self):
+    def get_aligned_feats(self) -> Dict[str, Dict[str, Dict[str, np.ndarray]]]:
+        """
+        Get aligned features
+        :return self.aligned_feats: Dictionary of aligned features with each key being a feature type ('features', 'identity_targets', 'reg_targets', 'times')
+        and values being dictionarys from stimulus to 'features' and 'times' arrays
+        """
         return self.aligned_feats

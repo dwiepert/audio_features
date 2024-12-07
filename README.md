@@ -1,14 +1,8 @@
-TODO STUFF:
-1. Check that word and phone features are saved correctly and look right 
-2. Check what is going wrong with evaluation of word embeddings
-3. Debug classification
-4. Result analysis woohoo
-
 # Audio Features
 Package for extracting various features from audio stimuli
 
 ## Setup
-Before installing: if you have access to conda it is good practice to create a new environment for use with this package. Make sure the environment is active before installing. 
+In order to install all components easily, it is best to have a conda environment (some packages installed with conda and not setup.py)
 
 To install, use
 
@@ -19,27 +13,102 @@ $ pip install .
 ```
 
 This will be the first stage of setting up this package to run. You will also need to install:
-* https://github.com/dwiepert/audio_preprocessing.git
-* https://github.com/dwiepert/database_utils.git
+* [preprocessing repo](https://github.com/dwiepert/audio_preprocessing.git)
+* [database_utils repo](https://github.com/dwiepert/database_utils.git)
+* [sparc repo](https://github.com/dwiepert/sparc.git)
 * ffmpeg=6.1.1, you can do this with `conda install conda-forge::ffmpeg=6.1.1`
 * pytables, install with `conda install pytables`
-* https://github.com/dwiepert/sparc.git 
 Please note that we are installing a fork of sparc to deal with a bug that hasn't been addressed in the official implementation
 
 The other git packages are installed with a similar process (git clone, cd into the new repo, pip install), though you can check out their READMEs for the full process.
 
-## Editing code
-Since we're using a shared private github, when you edit it - use the following git commands
+## Extracting features
+Extracting features directly from the audio is done with [stimulus_features.py](https://github.com/dwiepert/audio_features/stimulus_features.py). The following arguments are required/recommended to run extraction:
+* `--stimulus_dir=PATH_TO_STIMULUS_FILES`
+* `--out_dir=PATH_TO_SAVE_OUTPUTS`
+* `--feature_type=FEATURETYPE`
+* `--return_numpy`
+* `--full_context`
 
-```
-cd audio_features #must be in this directory for anything to work
-git remote # it should list origin if you are in fact connected to the shared github
-git fetch origin # I'll try to let you know if this needs to be run because I changed some higher level code
-git branch BRANCHNAME #create a local branch PRIOR TO CODING ANYTHING
-git push origin BRANCHNAME
-```
+This code can extract the following features:
+* hugging face based models as specified in [hf_model_configs.json](https://github.com/dwiepert/audio_features/audio_features/configs/hf_model_configs.json). To specify this give the following arguments(s): `--feature_type=hf --model_name=HFMODELNAME`, where HFMODELNAME is from the configs json. Optional arguments for hugging face based extraction are:
+    - `--use_featext` to use the feature extractor associated with a model
+    - `--layers 0 1 .... n_layers` to select features from layers beyond the final one. List the number associated with each layer you want to extract.
+    - `--model_config_path=CONFIGPATH` if using a config file different than the default hf_model_configs.json.
+* Speech articulatory coding ([SPARC](https://github.com/Berkeley-Speech-Group/Speech-Articulatory-Coding/tree/main)) framework. To specify this give the following argument(s): `--feature_type=sparc --model_name=SPARCMODELNAME` where SPARCMODELNAME is "en", "multi", or "en+" (specifies models trained on different data). We used "en" for our experiments. 
+* FBANK features. To specify this give the following argument(s): `--feature_type=fbank`. Some optional arguents are:
+    - `--num_mel_bins=NUM`, number of mel bins to use
+    - `--frame_length=FLOAT`, frame length for extraction in ms
+    - `--frame_shift=FLOAT`, frame shift for extraction in ms
+* openSMILE based features. ComParE2016 is currently implemented but could easily be extended to other features available from openSMILE ([opensmile with python](https://audeering.github.io/opensmile-python/)). To specify this give the following argument(s): `--feature_type=opensmile`. You can optionally set:
+    - `--feature_set=OPENSMILEFEATURESETNAME`, the opensmile feature set you want to use
+    - `--feature_level=OPENSMILEFEATURELEVEL`, the feature level you want to use (either lld or func)
+    - `--default_extractor`, use the default extractor rather than a custom extractor (boolean)
+    - `--frame_length=FLOAT`, frame length for extraction in m (only for custom extractor)
+    - `--frame_shift=FLOAT`, frame shift for extraction in ms (only for custom extractor)
 
-when you want to merge it it's probably easiest to do that on the website instead, but if you know how to merge and resolve conflicts in a terminal go ahead. The main thing that we need to be careful of is editing stimulus_features.py as this will be potentially edited by everyone. Once you've edited and debugged your implementation of the extractor and added it to stimulus_features/made sure it runs, feel free to merge it with the master branch and let us know to pull it. 
+Other optional features of interest:
+* `--batchsz=INT`: batch size
+* `--chunksz=FLOAT`, `--contextsz=FLOAT`: window size parameters
+* `--min_length_samples=FLOAT`: minimum length any sample can be in seconds
+* `--pad_silence`, specify whether to pad short clips with silence
+* `--overwrite`, overwrite existing features
+* `--keep_all`, turn off downsampling of features
+* `--recursive`, recursively load audio files
+* `--stim_bucket=BUCKETNAME, --out_bucket= BUCKETNAME, --sessions 1 2 ... num_sessions, --stories name1 ... namen` for working directly with stimulus bucket. If so, use sessions 1 2 3 4 5.
+
+## Extracting features from features
+A handful of features are extracted based on other features (residuals, ema-wav, pca) or require alignment with features (word/phone identity). These are extracted with [feat_v_feat.py](https://github.com/dwiepert/audio_features/feat_v_feat.py). The following arguments are required/recommended to run extraction: 
+* `--feat_dir1=PATH, --feat_dir2=PATH`: give full file path to feature directories. `feat_dir1` specifies the from feature while `feat_dir2` is the feature needed for extraction. For word/phone identiy, feat_dir2 is the name of the directory you would like to save the word/phone features to. 
+* `--feat1_type=FEATNAME, --feat2_type=FEATNAME`: specify the feature name. You can choose whatever name you want for features unless you are attempting to extract word/phone identity in which case it must be either 'word' or 'phone'.
+* `--feat1_times=PATH, --feat2_times=PATH`: give full file path to directory with times associated with the features. This is only required if a feature does not save times in the same directory as the features. 
+* `--out_dir=PATH`: path to save files to
+* `--function=FUNCTIONNAME`: choose function depending on which feature is being extracted (see below)
+
+The following features can be extracted using this script:
+* residuals and ema-wav features (predicted wavLM features from regression trained to map EMA to WAV). To extract these features, set the following arguments:
+    - `--feat_dir1=PATH_TO_WAVLM_FEATS --feat1_type=wavlm-large.LAYER --feat1_times=PATH_TO_WAVLM_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed when using features from a specific layer as layer features are stored in subdirectories of the main wavlm directory. 
+    - `--feat_dir2=PATH_TO_SPARC/EMA_FEATS --feat2_type=ema`. Note that you do not need times for EMA as they are stored in the same level of the directory as the features. Additionally, the feat2_type MUST be 'ema' for purposes of processing ema features correctly.
+    - `--function=lstsq`: specifies we're extracting with least squares regression. 
+* pca features (based on residuals from lstsq regression). To extract these features, set the following arguments:
+    - `--feat_dir1=PATH_TO_RESIDUALS --feat1_type=lstsq --feat1_times=PATH_TO_WAVLM_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed and you can use wavLM times since they are aligned as long as residuals were extracted from that set of wavLM features/times.
+    - `--function=pca`
+* word/phone identity features. These need to be extracted for EACH of the main feature sets (wavlm, ema, emawav, residuals, pca-residuals). To extract these features, set the following arguments:
+    - `--feat_dir1=PATH_TO_FEATURES --feat1_type=FEATURENAME--feat1_times=PATH_TO_FEATURE_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed for all features except ema. You can use wavLM times since they are aligned as long as residuals and other features were extracted from that set of wavLM features/times.
+    - `--feat_dir2=PATH_TO_WORD/PHONE_IDENTITY_DIR --feat2_type=word/phone`. Set either word or phone for `feat2_type` and decide output name for `feat_dir2`. Do not need to set `feat2_times`.
+    - `--function=extract`
+
+Other optional features of interest:
+* `--overwrite`, overwrite existing features
+* `--recursive`, recursively load audio files
+* `--stim_bucket=BUCKETNAME, --out_bucket= BUCKETNAME, --sessions 1 2 ... num_sessions, --stories name1 ... namen` for working directly with stimulus bucket. If so, use sessions 1 2 3 4 5.
+
+## Linear probing
+Linear probing is also done with [feat_v_feat.py](https://github.com/dwiepert/audio_features/feat_v_feat.py). You can fit either ridge regressions or logistic regressions (classification) with this code. Feature 1 will always be the independent variable, so set `--feat_dir1 --feat1_type --feat1_times` accordingly. Feature 2 will be either the dependent vaiable or the targets so set  `--feat_dir2 --feat2_type --feat2_times` accordingly. The following arguments are required/recommended to run probing: 
+* `--feat_dir1=PATH, --feat_dir2=PATH`: give full file path to feature directories. `feat_dir1` specifies the from feature while `feat_dir2` is the feature needed for extraction. For word/phone identiy, feat_dir2 is the name of the directory you would like to save the word/phone features to. 
+* `--feat1_type=FEATNAME, --feat2_type=FEATNAME`: specify the feature name. You can choose whatever name you want for features unless you are attempting to extract word/phone identity in which case it must be either 'word' or 'phone'.
+* `--feat1_times=PATH, --feat2_times=PATH`: give full file path to directory with times associated with the features. This is only required if a feature does not save times in the same directory as the features. 
+* `--out_dir=PATH`: path to save files to
+* `--function=FUNCTIONNAME`: choose function depending on which kind of probe you want to run.
+
+The following details the two functions and when to use them:
+* `--function=ridge` specifies Ridge regression. This is used for fbank/opensmile/word embedding probes. Some additional arguments for this function include:
+    - `--cv_split=INT`: number of cross validation splits to use (default=5) 
+    - `--n_boots=INT`: number of repeats of cross validation to use (default=3)
+    - `--corr_type=STRTYPE`: either 'feature' or 'time'. Designates how to average correlations. 'time' is only used for word embedding probe. (default=feature)
+* `--function=multiclass_clf`: specifies logistic regression for identity probes. Targets should be int values associated with a unique word/phone. No additional arguments are needed.
+* `--function=multilabel_clf`: used for categorical articulation features when there are multiple labels to fit regressions for. 
+
+You can aso create dataset splits using the following arguments:
+* `--split`: flag for generating splits
+* `--split_path=PATH`: path to split directory. Should be given to maintain consistency across probes.
+* `--n_splits=INT`: number of splits to make (default=5)
+* `--train_ratio=FLOAT`: train ratio out of 1 (default=.8)
+
+Other optional features of interest:
+* `--overwrite`, overwrite existing features
+* `--recursive`, recursively load audio files
+* `--stim_bucket=BUCKETNAME, --out_bucket= BUCKETNAME, --sessions 1 2 ... num_sessions, --stories name1 ... namen` for working directly with stimulus bucket. If so, use sessions 1 2 3 4 5.
 
 ## Extractor example
 See audio_features/extractors/_mfcc_extraction.py for a walk through of how to code an extractor. Copy and fill in TODOs as you see fit for whatever feature type you decide to extract. The other examples can give you an idea for more complex types
@@ -47,47 +116,16 @@ See audio_features/extractors/_mfcc_extraction.py for a walk through of how to c
 ## Extracting orthogonal features
 To do this, we use np.linalg.lstsq - we are using a modified version of the SPARC EMA features (with loudness removed (i.e. we are removing index 12 from the ema array) as loudness is purely acoustic) to predict layer 9 WavLM features. This is run in feat_v_feat.py. 
 
-## Probes: TODO
-Nothing has been implemented for this yet.
-
-## Example arguments for different things
-If you can see the .vscode/launch.json file, that has debugging environments with the arguments you would need specified.
-
-Mainly, you should always have --require_full_context and --return_numpy toggeled on. You should also specify --stimulus_dir and --out_dir. You can mess with --batchsz but don't touch any of contextsz, chunksz, etc. Add whatever model specific parameters you need (MAKE SURE THESE ARE SAVED TO THE EXTRACTOR CONFIG SO WE HAVE A WAY TO LOG WHAT THE ARGUMENTS WERE)
-
-
+## RESULT ANALYSIS
+Plots and analyis done in [plots.Rmd](https://github.com/dwiepert/audio_featurs/plots.Rmd)
 # TRACK CHANGES
 SPARC bug? - kernel size 400 (25ms) while stride is 320 (20ms)? output wasn't right dimensions before Amplitude thing - talk to Alex
 Changed line 369 in generator.py of SPARC to torch.nn.utils.parametrizations.weight_norm(m) bc of utils.weight_norm becoming deprecated
-Ignoring loudness - acoustinc
-Saving happens within a class (since different things might output different features/results of different sizes but take in the same input)
-Loading happens as a separate function in the .py script outside of any class (since it is the same regardless of class for each individual script)
-
+Ignoring loudness - acoustic
 
 Common issues:
 WINDOWS PATHS : make sure / not \ (which is how it shows up in a terminal)
 
-# TODO:
-Rerun V extraction
-Debug ridge regression 
-Split up stories
-
-Run regression for:
-WavLM to fbank
-EMA to fbank
-V to fbank
-
-WavLM to opensmile
-EMA to opensmile
-V to opensmile
-
-Run classification for:
-WavLM to word identity
-EMA to word identity
-V to word identity
-
-WavLM to phone identity
-EMA to phone identity
-V to phone identity
-
-Upload features to a cci bucket 
+TODO:
+1. Handle overwriting - allow for adding new stories without overwriting everything that already existed
+2. Debug cci

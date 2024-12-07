@@ -10,7 +10,7 @@ import json
 import os
 from pathlib import Path
 import time
-from typing import Union
+from typing import Union, Dict
 ##third-party
 import numpy as np
 from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
@@ -23,14 +23,24 @@ from ._base_model import BaseModel
 
 class LinearClassification(BaseModel):
     """
-    Types of scoring https://scikit-learn.org/1.5/modules/model_evaluation.html#scoring-parameter
+    :param iv: dict, independent variable(s), keys are stimulus names, values are array like features
+    :param iv_type: str, type of feature for documentation purposes
+    :param dv: dict, dependent variable(s), keys are stimulus names, values are array like features
+    :param dv_type: str, type of feature for documentation purposes
+    :param save_path: path like, path to save features to (can be cc path or local path)
+    :param classification_type: str, multiclass_clf or multilabel_clf
+    :param n_splits: int, number of cross validation splits (default = 5)
+    :param n_repeats: int, number of cross validation repeats (default = 3)
+    :param cci_features: cotton candy interface for saving
+    :param overwrite: bool, indicate whether to overwrite values
+    :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:dict, iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path], classification_type:str='multiclass_clf',
-                        n_splits:int=5, n_repeats:int=3,
-                       cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
+    def __init__(self, iv:Dict[str,Dict[str, np.ndarray]], iv_type:str, dv:dict, dv_type:str, save_path:Union[str,Path], classification_type:str='multiclass_clf',
+                        n_splits:int=5, n_repeats:int=3, cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
         self.classification_type=classification_type
-        self.n_splits = n_splits
-        self.n_repeats = n_repeats
+        assert self.classification_type in ['multiclass_clf', 'multilabel_clf'], 'Invalid classification_type.'
+        self.n_splits = n_splits #not currently used
+        self.n_repeats = n_repeats #not currently used
         self.keep = None
         self.remove = None
 
@@ -44,7 +54,13 @@ class LinearClassification(BaseModel):
         self._check_previous()
         self._fit()
 
-    def _process_targets(self, targets):
+    def _process_targets(self, targets:np.ndarray) -> np.ndarray:
+        """
+        Process targets to be compatible with sklearn LogisticRegression 
+
+        :param targets: numpy array of target labels
+        :return targets: numpy array of modified target labels (dimension/changes)
+        """
         if targets.ndim == 2 and self.classification_type=='multiclass_clf':
             if targets.shape[1] == 1:
                 targets = np.squeeze(targets)
@@ -69,6 +85,7 @@ class LinearClassification(BaseModel):
   
     def _fit(self):
         """
+        Fit a classification model
         """
         if self.weights_exist and not self.overwrite:
             assert self.model is not None, 'Weights do not exist. Loading weights went wrong.'
@@ -120,7 +137,14 @@ class LinearClassification(BaseModel):
         with open(str(self.result_paths['train_eval'])+'.json', 'w') as f:
             json.dump(eval,f)
 
-    def eval_model(self, true, pred):
+    def eval_model(self, true:np.ndarray, pred:np.ndarray) -> Dict[str, np.ndarray]:
+        """
+        Override base model eval_model function for use with classification metrics.
+
+        :param true: np.ndarray, true values
+        :param pred: np.ndarray, predicted values
+        :return metrics: dictionary of values
+        """
         acc = accuracy(true, pred)
         balanced_acc, recall, precision, f1 = clf_metrics(true, pred)
 
@@ -137,8 +161,15 @@ class LinearClassification(BaseModel):
         return metrics
 
 
-    def score(self, feats, ref_feats, fname):
+    def score(self, feats: Dict[str, Dict[str, np.ndarray]], ref_feats:Dict[str, Dict[str, np.ndarray]], fname:str) -> tuple[Dict[str,np.ndarray], Dict[str,np.ndarray]]:
         """
+        Score classification model
+
+        :param feats: dict, feature dictionary, stimulus names as keys
+        :param ref_feats: dict, feature dictionary of ground truth predicted features, stimulus names as keys
+        :param fname: str, name of stimulus to extract for
+        :return per_story_metrics: dictionary of model eval metrics
+        :return: Dictionary of true and predicted values 
         """
         #if fname in self.result_paths['metric']:
         #    if self.cci_features is not None:

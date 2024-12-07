@@ -30,7 +30,7 @@ if __name__ == "__main__":
                         help='Specify a local directory with the audio stimulus you want to extract features from. Audio should be already processed.')
     parser.add_argument('--out_dir', type=str, required=True,
                         help="Specify a local directory to save configuration files to. If not saving features to corral, this also specifies local directory to save files to.")
-    parser.add_argument('--feature_type', type=str, default="hf",
+    parser.add_argument('--feature_type', type=str, required=True,
                         help="Specify what feature type to extract")
     parser.add_argument('--return_numpy', action='store_true',
                         help='Toggle if you want the features to be output as numpy arrays')
@@ -62,6 +62,8 @@ if __name__ == "__main__":
                             help="Specify frame length for extraction in MS for methods without set length. We set default to 25ms to match WavLM frames.")
     parser.add_argument("--frame_shift", type=float, default=20.,
                             help="Specify frame shift for extraction in MS for methods without set shift. We set default to 20ms to match WavLM frames.")
+    parser.add_argument('--recursive', action='store_true',
+                                   help='Recursively find .wav and .flac in the stimulus_dir.')
     #Cotton candy related args (stimulus selection + save to bucket)
     #Cotton candy related args (stimulus selection + save to bucket)
     cc_args = parser.add_argument_group('cc', 'cottoncandy related arguments (loading/saving to corral)')
@@ -75,13 +77,11 @@ if __name__ == "__main__":
     cc_args.add_argument('--stories', '--stimuli', nargs='+', type=str,
                                    help="Only process the given stories."
                                    "Overrides --sessions and --subjects.")
-    cc_args.add_argument('--recursive', action='store_true',
-                                   help='Recursively find .wav and .flac in the stimulus_dir.')
     #Model loading related arguments (hugging face/SPARC)
     model_args = parser.add_argument_group('models', 'Args for loading models')
     model_args.add_argument('--model_name', type=str,
                         help="Specify model name. Will be dependent on which extactor you are using")
-    model_args.add_argument('--model_config_path', type=str,
+    model_args.add_argument('--model_config_path', type=str, default='./audio_features/configs/hf_model_configs.json',
                         help="Specify a path to a json with model information if required. For hugging face, use: audio_features/configs/hf_model_configs.json")
     model_args.add_argument('--use_featext', action='store_true',
                         help="Specify whether to use a pretrained feature extractor (Hugging face specific)")

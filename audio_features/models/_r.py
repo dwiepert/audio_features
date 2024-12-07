@@ -34,7 +34,7 @@ class RRegression(BaseModel):
     :param overwrite: bool, indicate whether to overwrite values
     :param local_path: path like, path to save config to locally if save_path is not local
     """
-    def __init__(self, iv:Dict[str,np.ndarray], iv_type:str, dv:Dict[str,np.ndarray], dv_type:str, save_path:Union[str,Path],
+    def __init__(self, iv:Dict[str,Dict[str, np.ndarray]], iv_type:str, dv:Dict[str,Dict[str,np.ndarray]], dv_type:str, save_path:Union[str,Path],
                  alphas:np.ndarray=np.logspace(-5,2,num=10), n_splits:int=5, n_repeats:int=3, corr_type:str="feature",
                  cci_features=None, overwrite:bool=False, local_path:Union[str,Path]=None):
          
