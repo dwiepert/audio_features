@@ -31,6 +31,8 @@ class LinearClassification(BaseModel):
         self.classification_type=classification_type
         self.n_splits = n_splits
         self.n_repeats = n_repeats
+        self.keep = None
+        self.remove = None
 
         add_config = {
             'classification_type': self.classification_type, 'n_splits': self.n_splits, 'n_repeats': self.n_repeats
@@ -48,6 +50,20 @@ class LinearClassification(BaseModel):
                 targets = np.squeeze(targets)
             else:
                 targets = np.argmax(targets, axis=1)
+
+        elif targets.ndim ==2 and self.classification_type == 'multilabel_clf':
+            if self.keep is None:
+                self.keep = []
+                self.remove = []
+                for i in range(targets.shape[1]):
+                    count = np.sum(targets[:,i])
+                    if count > 0 :
+                        self.keep.append(i)
+                    else:
+                        self.remove.append(i)
+
+            targets = targets[:,self.keep]
+
         print(f'Targets shape: {targets.shape}')
         return targets
   
@@ -57,6 +73,14 @@ class LinearClassification(BaseModel):
         if self.weights_exist and not self.overwrite:
             assert self.model is not None, 'Weights do not exist. Loading weights went wrong.'
             print('Weights already exist and should not be overwritten')
+            krpath = self.result_paths['train_eval'].parent / 'keepremove.json'
+            if self.classification_type=='multilabel_clf':
+                assert krpath.exists()
+                with open(str(krpath), 'r') as f:
+                    kr = json.load(f)
+                self.keep = kr['keep']
+                self.remove = kr['remove']
+            self.dv = self._process_targets(self.dv)
             #return
         else:
             st = time.time()
@@ -71,8 +95,8 @@ class LinearClassification(BaseModel):
             self.model = LogisticRegression(max_iter=1000)
             #self.model = LogisticRegressionCV(cv=self.n_splits,random_state=1, max_iter=1000)
 
-            #if self.classification_type=='multilabel_clf':
-            #    self.model = MultiOutputClassifier(self.model)
+            if self.classification_type=='multilabel_clf':
+                self.model = MultiOutputClassifier(self.model)
             
             #cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
 
@@ -84,6 +108,12 @@ class LinearClassification(BaseModel):
             print(f'Model fit in {total} minutes.')
             self._save_model(self.model, self.scaler)
 
+            if self.keep is not None:
+                out = {'keep': self.keep, 'remove': self.remove}
+                os.makedirs(str(self.result_paths['train_eval'].parent), exist_ok=True)
+                with open(str(self.result_paths['train_eval'].parent / 'keepremove.json'), 'w') as f:
+                    json.dump(out,f)
+
         preds = self.model.predict(self.scaler.transform(self.iv))
         eval = self.eval_model(self.dv, preds)  
         os.makedirs(str(self.result_paths['train_eval'].parent), exist_ok=True)
@@ -93,6 +123,14 @@ class LinearClassification(BaseModel):
     def eval_model(self, true, pred):
         acc = accuracy(true, pred)
         balanced_acc, recall, precision, f1 = clf_metrics(true, pred)
+
+        if self.remove is not None:
+            for r in self.remove:
+                acc.insert(r, np.nan)
+                balanced_acc.insert(r, np.nan)
+                recall.insert(r, np.nan)
+                precision.insert(r, np.nan)
+                f1.insert(r, np.nan)
 
         metrics = {'accuracy': acc,'balanced_accuracy':balanced_acc, 'precision': precision, 'recall': recall, 'f1': f1}
 
@@ -123,7 +161,8 @@ class LinearClassification(BaseModel):
         
         assert np.equal(t, rt).all(), f'Time alignment skewed across features for stimulus {fname}.'
         #TODO:
-        f = f.astype(self.model.coef_.dtype)
+        if not isinstance(self.model, MultiOutputClassifier):
+            f = f.astype(self.model.coef_.dtype)
         pred = self.model.predict(self.scaler.transform(f))
 
         per_story_metrics = self.eval_model(rf, pred)

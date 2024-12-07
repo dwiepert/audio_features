@@ -296,8 +296,8 @@
             "args": [
                 "--feat_dir1=/Users/dwiepert/Documents/Grad_School/Huth/data/data/old_features/old_features/sparc/en/",
                 "--feat1_type=ema",
-                "--feat_dir2=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/word_identity/",
-                "--feat2_type=word",
+                "--feat_dir2=/Users/dwiepert/Documents/Grad_School/Huth/data/data/features/phone_identity/",
+                "--feat2_type=phone",
                 "--stimulus_dir=/Users/dwiepert/Documents/Grad_School/Huth/data/data/processed_stimuli",
                 "--out_dir",
                 "/Users/dwiepert/Documents/Grad_School/Huth/outputs",
@@ -308,7 +308,7 @@
                 "3",
                 "4",
                 "5",
-                "--function=multiclass_clf",
+                "--function=multilabel_clf",
                 "--split",
                 "--split_path=/Users/dwiepert/Documents/Grad_School/Huth/data/data/splits"
             ]
