@@ -178,7 +178,7 @@
                 "--feat2_times",
                 "/Users/dwiepert/Documents/Grad_School/Huth/data/data/old_features/old_features/hf/wavlm-large/",
                 "--feat1_type",
-                "ema",
+                "sparc",
                 "--feat2_type",
                 "wavlm-large.9",
                 "--function=lstsq",

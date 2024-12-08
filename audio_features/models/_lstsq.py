@@ -78,6 +78,7 @@ class LSTSQRegression(BaseModel):
             print('Weights already exist and should not be overwritten')
         else:
             print(f'DV shape: {self.dv.shape}')
+            print(f'IV shape: {self.iv.shape}')
             x, residuals, rank, s = np.linalg.lstsq(self.iv, self.dv, rcond=None)
             
             self.wt = x 
