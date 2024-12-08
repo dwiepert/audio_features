@@ -222,7 +222,7 @@ get_table_v3 <- function(varlist){
 
 ```{r load-data}
 
-result_dirs <- get_subdirs('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results', '*')
+result_dirs <- get_subdirs('./data/new_results', '*')
 result_dirs <- result_dirs[-length(result_dirs)]
 
 ridge_dirs<-c()
@@ -244,7 +244,7 @@ for (i in 1:length(result_dirs)){
 vars <- get_splits_reg(ridge_dirs)
 ridge_data <- get_table_v1(vars)
 ridge_eval <- get_table_v3(vars)
-r2_ridge <- ridge_eval %>% filter(metric=='r2') %>% group_by( feat1) %>% summarise(mean=mean(value))
+r2_ridge <- ridge_eval %>% filter(metric=='r2') %>% group_by( feat2) %>% summarise(mean=mean(value), sd=sd(value))
 r2_test <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat2,p.adjust.method='bonferroni')
 
 
@@ -267,9 +267,9 @@ mlb_eval <- get_table_v3(vars3)%>%
            sep = "(?<=[A-Za-z])(?=[0-9])"
            ) %>% mutate(metric=metric_type) %>% ungroup() %>% select(-metric_type, -category)
 
-clf_eval <- rbind(mlc_eval, mlb_eval) %>% filter(metric=='balanced_accuracy') %>% mutate(feats=paste0(feat1,'_', feat2, '_', type))
+clf_eval <- rbind(mlc_eval, mlb_eval) %>% filter(metric=='balanced_accuracy') %>% mutate(feats=paste0(feat1,'_', feat2, '_', type), new_type=paste0(feat2,'_',type))
 
-clf_tst <- clf_eval %>% pairwise_t_test(value ~ feats,p.adjust.method='bonferroni')
+clf_tst <- clf_eval %>% pairwise_t_test(value ~ new_type,p.adjust.method='bonferroni')
 clf_avg <- clf_eval %>% group_by(feat2,type) %>% summarize(mean=mean(value), sd=sd(value))
 ```
 
@@ -313,23 +313,23 @@ rstats <- ridge_stats(ridge)
   stats_feat1 <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% ungroup() %>% group_by(feat1)  %>% pairwise_t_test(value ~ feats,p.adjust.method='bonferroni')
   
 p1 <- ridge_plot(df = ridge %>% filter(feat2=='FBANK-23'))
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/fbank.png', height=5, width=4.5
+ggsave('./data/new_results/fbank.png', height=5, width=4.5
 )
 
 p2 <- ridge_plot(df = ridge %>% filter(feat2=='FBANK-40'))
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/fbank40.png', height=5, width=4.5
+ggsave('./data/new_results/fbank40.png', height=5, width=4.5
 )
 
 p3 <- ridge_plot(df = ridge %>% filter(feat2=='ComParE 2016'))
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/opensmile.png', height=5, width=4.5)
+ggsave('./data/new_results/opensmile.png', height=5, width=4.5)
        
 p4 <- ridge_plot(df = ridge %>% filter(feat2=='Word Embedding'))
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/word.png', height=5, width=4.5
+ggsave('./data/new_results/word.png', height=5, width=4.5
 )
 
 gg <- ggarrange(p2, p3, p4, nrow=1, ncol=3, common.legend=TRUE,legend="right")
  
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/ridge.png', height=4, width=12)
+ggsave('./data/new_results/ridge.png', height=4, width=12)
 
 
 ### STATS
@@ -384,10 +384,10 @@ word <- clf_plot(mlt %>% filter(feat2=='Word Identity'))
 phone <- clf_plot(mlt %>% filter(feat2=='Phone Identity'))
 
 p <- ggarrange(word[[1]]+ theme(axis.title.x = element_blank()), phone[[1]]+ theme(axis.title.x = element_blank()), word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), nrow=2, ncol=2, common.legend=TRUE, legend="right")
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/multiclass_clf.png', height=7, width=8)
+ggsave('./data/new_results/multiclass_clf.png', height=7, width=8)
 
 p <- ggarrange(word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), nrow=1, ncol=2, common.legend=TRUE, legend="right")
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/multiclass_clf_bacc.png', height=4, width=8)
+ggsave('./data/new_results/multiclass_clf_bacc.png', height=4, width=8)
 
 
 mlt <- multilabel_data
@@ -400,54 +400,10 @@ mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema","emawav", "pca-residu
 art <- clf_plot(mlt)
 
 p <- ggarrange(word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), art[[2]] + theme(axis.title.x = element_blank()), nrow=1, ncol=3, common.legend=TRUE, legend="right")
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/all_clf_bacc.png', height=4, width=12)
+ggsave('./data/new_results/all_clf_bacc.png', height=4, width=12)
 
 p <- ggarrange(p2 + theme(axis.title.x = element_blank()), p3 + theme(axis.title.x = element_blank()), p4+ theme(axis.title.x = element_blank()), word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), art[[2]] + theme(axis.title.x = element_blank()), nrow=2, ncol=3, common.legend=TRUE, legend="right")
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/new_results/all_performance.png', height=8, width=12)
+ggsave('./data/new_results/all_performance.png', height=8, width=12)
 
 
-```
-
-
-
-
-```{r make-plots}
-#non-multiclass 
-ridge <- data %>% filter(type=='ridge', feat2 != 'word') %>% group_by(feat1, feat2)
-ridge_word <- data %>% filter(type=='ridge', feat2 == 'word') %>% group_by(feat1,feat2,version)
-multiclass <- data %>% filter(type=='multiclass') %>% group_by(feat1, version)
-
-opensmile <- ridge %>% filter(feat2=='opensmile')
-ridge <- ridge %>% mutate(feature=factor(feat1), correlation=values) %>% select(feature, correlation, feat2)
-
-my_comparisons <- list(c("ema","emawav"), c("ema","lstsq"),c("ema", "wavlm-large.9"), c("emawav","lstsq"), c("emawav", "wavlm-large.9"), c("lstsq", "wavlm-large.9"))
-fbank <- ridge %>% filter(feat2=='fbank') %>% ggplot( aes(feature, correlation, fill=feature)) + geom_boxplot()+
-  scale_fill_discrete_sequential(palette="ag_Sunset") + ggtitle('FBANK23') + theme(plot.title = element_text(hjust = 0.5))+ stat_compare_means(comparisons = my_comparisons, label="p.signif")
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/resultsv2/fbank23.png', height=5, width=5)
-fbank40 <- ridge %>% filter(feat2=='fbank40') %>% ggplot( aes(feature, correlation, fill=feature)) + geom_boxplot()+
-  scale_fill_discrete_sequential(palette="ag_Sunset") + ggtitle('FBANK40') + theme(plot.title = element_text(hjust = 0.5))+ stat_compare_means(comparisons = my_comparisons, label="p.signif")
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/resultsv2/fbank40.png', height=5, width=5)
-
-os <- ridge %>% filter(feat2=='opensmile') %>% ggplot( aes(feature, correlation, fill=feature)) + geom_boxplot()+
-  scale_fill_discrete_sequential(palette="ag_Sunset") + ggtitle('openSMIILE') + theme(plot.title = element_text(hjust = 0.5))+ stat_compare_means(comparisons = my_comparisons, label="p.signif")
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/resultsv2/opensmile.png', height=5, width=5)
-
-p < ggarrange(fbank, fbank40, os,nrow=1, ncol=3)
-  
-
-
-
-  hcl.colors(name="ag_Sunset")
-summ2 <- ridge %>% group_by(feat1,feat2) %>% summarize(mean=mean(values))
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/resultsv2/ridge_plot1.png', height=7, width=12)
-
-p <- ggplot(ridge_word, aes(factor(feat1), values, fill=factor(feat1))) + geom_violin() + facet_wrap(~feat2+version, nrow=1)  + stat_summary(fun=mean, geom="line")
-summ <- ridge_word %>% group_by(feat1,feat2,version) %>% summarize(mean=mean(values))
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/resultsv2/ridge_plot2.png', height=5, width=10)
-
-p <- ggplot(multiclass,aes(x=feat1, y=values, fill=feat1))+ geom_bar(stat="identity") + facet_wrap(~version, nrow=1)
-ggsave('/Users/dwiepert/Documents/Grad_School/Huth/data/data/results/multiclass_plot1.png', height=5, width=10)
-```
-
-```{r get-eval-results}
 ```
