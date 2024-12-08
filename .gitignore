@@ -11,7 +11,7 @@ audio_features/.DS_Store
 *.pyc
 audio_features/.DS_Store
 .DS_Store
-.DS_Store
+.Rhistory
 .Rproj.user
 newtest.py
 .vscode/launch.json
