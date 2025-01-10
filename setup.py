@@ -10,7 +10,7 @@ setup(
         'numpy==1.26.4',
         'librosa==0.10.2.post1',
         'transformers==4.46.1',
-        'torchaudio==2.2.0',
+        'torchaudio==2.2.2',
         'torchvision==0.17.2',
         'torch==2.2.2',
         'cottoncandy==0.2.0',
