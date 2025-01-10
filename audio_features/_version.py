@@ -1,4 +1,4 @@
-__version__ = '0.5.5'
+__version__ = '0.5.6'
 
 #change log:
 # 0.0.0: first version
@@ -19,3 +19,4 @@ __version__ = '0.5.5'
 # 0.5.3: new identity feature extraction debugged
 # 0.5.4: new classification debugged
 # 0.5.5: PCA added
+# 0.5.6: package compatibility changes
