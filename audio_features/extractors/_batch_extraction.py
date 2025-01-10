@@ -11,7 +11,7 @@ import copy
 import json
 import os
 from pathlib import Path
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Any
 
 ##third-party
 import numpy as np
@@ -20,7 +20,7 @@ import torch
 import torchvision 
 
 ##local
-from audio_preprocessing.transforms import Path2Wave, ResampleAudio, Window, PadSilence
+from audio_preprocessing.transforms import Path2Wave, ResampleAudio, PadSilence ,Window
 from audio_features.io import save_features
 
 class BatchExtractor:
@@ -37,13 +37,14 @@ class BatchExtractor:
     :param chunksz: float, chunk size in seconds. Default=0.1
     :param contextsz: float, context size in seconds. Default=8
     :param require_full_context: bool, true if full context should be included in each window
+    :param skip_window: bool, true if skipping Windowing transform
     :param min_length_samples: float, minimum length of samples in seconds
     :param return_numpy: bool, true if returning numpy
     :param pad_silence: bool, true if padding silence
     :param local_path: str/Path, local directory to save config file to if using self.cci_features. 
     """
     def __init__(self, extractor, save_path:Union[str, Path],  cci_features=None, fnames:List[str]=[], overwrite:bool=False,
-                 batchsz:int=1, chunksz:float=0.1, contextsz:float=8., require_full_context:bool=True, 
+                 batchsz:int=1, chunksz:float=0.1, contextsz:float=8., require_full_context:bool=True, skip_window:bool=False,
                  min_length_samples:float=0, return_numpy:bool=True, pad_silence:bool=False, local_path:Union[str,Path] = None):
         self.extractor = extractor
         self.cci_features=cci_features 
@@ -57,11 +58,13 @@ class BatchExtractor:
         self.contextsz=contextsz
         self.contextsz_samples = int(self.contextsz*self.sampling_rate)
         self.require_full_context=require_full_context
+        self.skip_window = skip_window
+        if self.skip_window:
+            self.batch_sz = 1
         self.min_length_samples = self.extractor.min_length_samples
         if self.min_length_samples is None:
             self.min_length_samples = min_length_samples
-        initial_transforms = [Path2Wave(), ResampleAudio(resample_rate=self.sampling_rate),
-                           Window(chunksz=self.chunksz, contextsz=self.contextsz, batchsz=self.batchsz, sampling_rate=self.sampling_rate, require_full_context=self.require_full_context, min_length_samples=self.min_length_samples)]
+        initial_transforms = [Path2Wave(), ResampleAudio(resample_rate=self.sampling_rate), Window(chunksz=self.chunksz, contextsz=self.contextsz, batchsz=self.batchsz, sampling_rate=self.sampling_rate, require_full_context=self.require_full_context, min_length_samples=self.min_length_samples, skip_window=self.skip_window)]
         self.pad_silence = pad_silence
         if self.pad_silence:
             self.padding = PadSilence(context_sz=self.contextsz)
@@ -71,7 +74,7 @@ class BatchExtractor:
 
         self.config = {'batchsz': self.batchsz, 'sampling_rate': self.sampling_rate, 'chunksz':self.chunksz, 'contextsz':self.contextsz, 'fnames':self.fnames,
                        'require_full_context':self.require_full_context, 'min_length_samples': self.min_length_samples, 'pad_silence':self.pad_silence,
-                       'return_numpy': self.return_numpy}
+                       'return_numpy': self.return_numpy, 'skip_window':self.skip_window}
         
         self.local_path = local_path
         if self.local_path is None or self.cci_features is None:
@@ -156,7 +159,7 @@ class BatchExtractor:
         save_features(sample, self.result_paths['features'][fname], self.result_paths['times'][fname], module_path, self.cci_features)
 
 
-    def __call__(self, sample:Dict[str]):
+    def __call__(self, sample:Dict[str, Any]):
         """
         Take in a sample and perform batched feature extraction on the sample. The sample should be preprocessed and also be windowed using audio_processing.transforms.Window.
         :param sample: dict, audio sample with metadata
@@ -174,20 +177,27 @@ class BatchExtractor:
         #expects samples to come in as a path that has ALREADY BEEN PREPROCESSED, then run path to wave and window. Window will check that sample rate is target sample rate
         sample = self.transforms(sample)
         
-        wav = torch.squeeze(sample['waveform'])
+        #wav = torch.squeeze(sample['waveform'])
 
         snippet_iter = sample['snippet_iter']
+        wav = sample['waveform']
         batched_features = []
         times = []
         module_features = collections.defaultdict(list)
 
-        for batch_idx, (snippet_starts, snippet_ends) in enumerate(tqdm(snippet_iter)):
+        if not self.skip_window:
+            num = enumerate(tqdm(snippet_iter))
+        else:
+            num = enumerate(snippet_iter)
+        for batch_idx, (snippet_starts, snippet_ends) in num:
+
             sample2 = copy.deepcopy(sample)
-            if ((snippet_ends - snippet_starts) < (self.contextsz_samples + self.chunksz_samples)).any() and self.require_full_context:
+
+            if ((snippet_ends - snippet_starts) < (self.contextsz_samples + self.chunksz_samples)).any() and self.require_full_context and not self.skip_window:
                 raise ValueError("This shouldn't happen with require_full_context")
 
             # If we don't have enough samples, skip this chunk.
-            if (snippet_ends - snippet_starts < self.min_length_samples).any():
+            if (snippet_ends - snippet_starts < self.min_length_samples).any() and not self.skip_window:
                 print('If this is true for any, then you might be losing more snippets than just the offending (too short) snippet. Consider increasing the input (chunk or context) to the model.')
                 assert False
 

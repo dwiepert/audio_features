@@ -9,13 +9,15 @@ setup(
     install_requires=[
         'numpy==1.26.4',
         'librosa==0.10.2.post1',
-        'transformers==4.46.1',
+        'transformers==4.48.0',
         'torchaudio==2.2.2',
         'torchvision==0.17.2',
         'torch==2.2.2',
         'cottoncandy==0.2.0',
         'opensmile==2.5.0',
-        'h5py==3.12.1'
+        'h5py==3.12.1',
+        'scipy==1.15.0',
+        'scikit-learn==1.6.1'
     ],
     include_package_data=False,  
     version = __version__,

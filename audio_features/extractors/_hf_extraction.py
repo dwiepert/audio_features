@@ -17,8 +17,7 @@ from typing import Optional, List, Union
 ##third-party
 import numpy as np
 import torch
-from transformers import AutoModel, AutoModelForPreTraining, PreTrainedModel,\
-                         AutoFeatureExtractor, WhisperModel
+from transformers import AutoModel, PreTrainedModel, AutoFeatureExtractor, WhisperModel
 
 ##local
 from ._base_extraction import BaseExtractor
@@ -41,6 +40,7 @@ class hfExtractor(BaseExtractor):
                        so in order to take 1 feature per batched waveform with chunksz = 100ms, you set 5 to say you take num_select_frames (1) every frame_skip
     :param frame_len_sec: int, information on how long a frame is in the model in seconds
     :param keep_all: bool, true if you want to keep all outputs from each batch
+    :param skip_window:bool, true if you want to skip the Window transform
     """
     def __init__(self, model: PreTrainedModel, model_type:str, save_path:Union[str,Path], target_sample_rate:int=16000, min_length_samples:int=0,
                  feature_extractor=None, sel_layers: Optional[List[int]]=None, return_numpy:bool=True,

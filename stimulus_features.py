@@ -13,6 +13,7 @@ import warnings
 
 ##third-party
 import cottoncandy as cc
+from tqdm import tqdm
 import torchaudio
 import torch
 
@@ -64,6 +65,8 @@ if __name__ == "__main__":
                             help="Specify frame shift for extraction in MS for methods without set shift. We set default to 20ms to match WavLM frames.")
     parser.add_argument('--recursive', action='store_true',
                                    help='Recursively find .wav and .flac in the stimulus_dir.')
+    parser.add_argument('--skip_window',action='store_true',
+                            help='Skip windowing for feature extraction.')
     #Cotton candy related args (stimulus selection + save to bucket)
     #Cotton candy related args (stimulus selection + save to bucket)
     cc_args = parser.add_argument_group('cc', 'cottoncandy related arguments (loading/saving to corral)')
@@ -131,7 +134,10 @@ if __name__ == "__main__":
         chuncksz_sec = args.stride
 
     #set save path name
-    model_save_path = Path(f"features_cnk{chunksz_sec:0.1f}_ctx{contextsz_sec:0.1f}_pick{args.num_select_frames}_skip{args.frame_skip}/{args.feature_type}")
+    if args.skip_window: 
+        model_save_path=Path(f'{args.feature_type}')
+    else:
+        model_save_path = Path(f"features_cnk{chunksz_sec:0.1f}_ctx{contextsz_sec:0.1f}_pick{args.num_select_frames}_skip{args.frame_skip}/{args.feature_type}")
     if args.model_name:
         model_save_path = model_save_path / args.model_name
     if args.feature_type=='opensmile':
@@ -139,7 +145,7 @@ if __name__ == "__main__":
         if not args.default_extractor:
             to_add += f"_len{args.frame_length}_shift{args.frame_shift}"
         model_save_path = model_save_path /to_add
-    if args.stride:
+    if args.stride and not args.skip_window:
         # If using a custom stride length (e.g. for snippets), store in a
         # separate directory.
         model_save_path = model_save_path / f"stride_{args.stride}"
@@ -174,12 +180,17 @@ if __name__ == "__main__":
         raise NotImplementedError(f'{args.feature_type} not supported.')
     
     # STEP 4: Set up batch extrator object
-    batching = BatchExtractor(extractor=extractor, save_path=model_save_path, fnames=list(stimulus_paths.keys()), overwrite=args.overwrite, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence, local_path=local_path)
+    batching = BatchExtractor(extractor=extractor, save_path=model_save_path, fnames=list(stimulus_paths.keys()), overwrite=args.overwrite, batchsz=args.batchsz, chunksz=chunksz_sec, contextsz=contextsz_sec, require_full_context=args.full_context, min_length_samples=args.min_length_samples, return_numpy=args.return_numpy, pad_silence=args.pad_silence, local_path=local_path, skip_window=args.skip_window)
     
     # STEP 5: RUN BATCHING FOR EACH STIMULUS
    
     # Make sure that all preprocessed stimuli exist and are readable.
-    for stimulus_name, stimulus_local_path in stimulus_paths.items():
+    if not args.skip_window:
+        num = enumerate(stimulus_paths.items())
+    else:
+        num = enumerate(tqdm(stimulus_paths.items()))
+
+    for idx, (stimulus_name, stimulus_local_path) in num:
         try:
             wav, sample_rate = torchaudio.load(stimulus_local_path)
         except:
