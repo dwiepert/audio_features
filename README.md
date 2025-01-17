@@ -81,6 +81,7 @@ The following features can be extracted using this script:
 Other optional features of interest:
 * `--overwrite`, overwrite existing features
 * `--recursive`, recursively load audio files
+* `--skip_window`, extract features from entire signal without following the windowing procedure.
 * `--stim_bucket=BUCKETNAME, --out_bucket= BUCKETNAME, --sessions 1 2 ... num_sessions, --stories name1 ... namen` for working directly with stimulus bucket. If so, use sessions 1 2 3 4 5.
 
 ## Linear probing
@@ -129,3 +130,4 @@ WINDOWS PATHS : make sure / not \ (which is how it shows up in a terminal)
 TODO:
 1. Handle overwriting - allow for adding new stories without overwriting everything that already existed
 2. Debug cci
+
