@@ -136,25 +136,32 @@ if __name__ == "__main__":
     #set save path name
     if args.skip_window: 
         model_save_path=Path(f'{args.feature_type}')
+    
     else:
-        model_save_path = Path(f"features_cnk{chunksz_sec:0.1f}_ctx{contextsz_sec:0.1f}_pick{args.num_select_frames}_skip{args.frame_skip}/{args.feature_type}")
+        model_save_path = f"{args.feature_type}_cnk{chunksz_sec:0.1f}ctx{contextsz_sec:0.1f}"
+    if not args.keep_all:
+        model_save_path += '_pick{args.num_select_frames}skip{args.frame_skip}'
     if args.model_name:
-        model_save_path = model_save_path / args.model_name
+        model_save_path+= '_args.model_name'
     if args.feature_type=='opensmile':
         to_add = f"{args.feature_set}_{args.feature_level}"
         if not args.default_extractor:
-            to_add += f"_len{args.frame_length}_shift{args.frame_shift}"
-        model_save_path = model_save_path /to_add
+            to_add += f"_len{args.frame_length}shift{args.frame_shift}"
+        model_save_path += to_add
     if args.stride and not args.skip_window:
         # If using a custom stride length (e.g. for snippets), store in a
         # separate directory.
-        model_save_path = model_save_path / f"stride_{args.stride}"
+        model_save_path += f"_stride{args.stride}"
+    
+    model_save_path = Path(model_save_path)
     
     if cci_features is None:
         model_save_path = args.out_dir / model_save_path
         local_path = None
+        model_save_path.mkdir(exist_ok=True)
     else:
         local_path = args.out_dir / model_save_path
+        local_path.mkdir(exist_ok=True)
         
     print('Saving features to:', model_save_path)
     
