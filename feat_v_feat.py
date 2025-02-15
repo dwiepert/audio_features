@@ -22,6 +22,7 @@ from tqdm import tqdm
 from audio_features.io import DatasetSplitter, load_features, align_times, Identity
 from audio_features.models import LSTSQRegression, RRegression, LinearClassification, residualPCA
 from audio_preprocessing.io import select_stimuli
+from audio_features.extractors import EMAAEExtractor, set_up_emaae_extractor, BatchExtractor
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -61,17 +62,22 @@ if __name__ == "__main__":
     model_args.add_argument("--cv_splits", type=int, default=5)
     model_args.add_argument("--n_boots", type=int, default=3)
     model_args.add_argument("--corr_type", type=str, default='feature', help="feature or time")
+    model_args.add_argument('--model_checkpoint', type=str, default='.',
+                        help="Specify a path to a saved model checkpoint if required. For EMAAE specifically. Will need local files")
+    model_args.add_argument('--model_config_path', type=str, default='./audio_features/configs/hf_model_configs.json',
+                        help="Specify a path to a json with model information if required. For hugging face, use: audio_features/configs/hf_model_configs.json")
     data_args = parser.add_argument_group('data', 'data splitting related args')
     data_args.add_argument("--split", action='store_true')
     data_args.add_argument("--split_path", type=str)
     data_args.add_argument("--n_splits", type=int, default=5)
     data_args.add_argument("--train_ratio", type=float, default=.8)
+    
   
     args = parser.parse_args()
     
     args.out_dir = Path(args.out_dir)
 
-    if 'clf' not in args.function or args.function != 'pca':
+    if 'clf' not in args.function or args.function not in ['pca','emaae']:
         assert args.feat_dir2 is not None, 'Must give two features if not doing classification.'
 
     if (args.out_bucket is not None) and (args.out_bucket != ''):
@@ -231,12 +237,20 @@ if __name__ == "__main__":
                                 overwrite=args.overwrite,
                                 local_path=local_path
                                 )
-        elif args.function == "extract":
+            
+        elif args.function == "emaae":
+            extractor = set_up_emaae_extractor(save_path=args.save_path, ckpt=args.model_checkpoint, config=args.model_config_path, return_numpy=args.return_numpy)
+            for idx, story in enumerate(tqdm(train_feats1.keys())):
+                sample = {'fname':story, 'ema':train_feats1[story]}
+                new_sample = extractor(sample)                                   
+            print('Extraction completed')
+
+        elif args.function == 'extract':
             print('Extraction completed')
         else:
             raise NotImplementedError(f'{args.function} is not implemented')
 
-        if args.function != "extract":
+        if args.function not in ['emaae', 'extract']:
             print(f'Scoring split {i}')
             true = None
             pred = None
@@ -255,11 +269,6 @@ if __name__ == "__main__":
 
                 os.makedirs(model.result_paths['test_eval'].parent, exist_ok=True)
                 with open(str(model.result_paths['test_eval'])+'.json', 'w') as f:
-                    json.dump(metrics,f)
-            
+                    json.dump(metrics,f)           
 
-    
-
-
-    
 

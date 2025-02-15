@@ -37,11 +37,10 @@ class SPARCExtractor(BaseExtractor):
     :param frame_len_sec: int, information on how long a frame is in the model in seconds
     :param keep_all: bool, true if you want to keep all outputs from each batch
     """
-    def __init__(self, model:SPARC, model_type:str,  save_path: Union[str, Path], target_sample_rate:int=16000, return_numpy:bool=True, min_length_samples:float=None,
-                 num_select_frames:int=1, frame_skip:int=5, frame_length_sec:float=None, keep_all:bool=False):
+    def __init__(self, model:SPARC, model_type:str,  save_path: Union[str, Path], target_sample_rate:int=16000, return_numpy:bool=True, 
+                frame_length_sec:float=None, keep_all:bool=False):
         
-        super().__init__(target_sample_rate=target_sample_rate, min_length_samples=min_length_samples,
-                         return_numpy=return_numpy, num_select_frames=num_select_frames, frame_skip=frame_skip)
+        super().__init__(target_sample_rate=target_sample_rate, return_numpy=return_numpy)
         self.model = model
         self.model_type = model_type
         self.frame_length_sec = frame_length_sec
@@ -52,8 +51,8 @@ class SPARCExtractor(BaseExtractor):
         assert len(self.output_inds) == 1, "Only one output per evaluation is "\
             "supported  (because they don't provide the downsampling rate)"
         
-        self.config = {'feature_type': 'sparc', 'model_type': self.model_type, 'target_sample_rate': self.target_sample_rate, 'min_length_samples':self.min_length_samples,
-                       'return_numpy': self.return_numpy, 'num_select_frames':self.num_select_frames, 'frame_skip': self.frame_skip, 'keep_all':self.keep_all}
+        self.config = {'feature_type': 'sparc', 'model_type': self.model_type, 'target_sample_rate': self.target_sample_rate, 
+                       'return_numpy': self.return_numpy, 'keep_all':self.keep_all}
         
         #saving things
         self.save_path = Path(save_path)
@@ -152,7 +151,6 @@ def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", conf
     Set up sparc extractor
     :param save_path: local path to save extractor configuration information to
     :param model_name: str, sparc model name, from [en, multi, en+, feature_extraction]
-    :param save_path: local path to save extractor configuration information to
     :param config: default None, see if configs exist in the Speech articulatory coding github
     :param ckpt: default None, can load a model checkpoint if desired
     :param use_penn:bool, specify whether to use pitch tracker

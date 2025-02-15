@@ -4,6 +4,7 @@ from ._mfcc_extraction import *
 from ._batch_extraction import *
 from ._fbank_extraction import *
 from ._opensmile_extraction import *
+from ._emaae_extraction import *
 
 __all__ = ['hfExtractor',
            'set_up_hf_extractor',
@@ -15,4 +16,6 @@ __all__ = ['hfExtractor',
            'set_up_fbank_extractor',
            'FBANKExtractor',
            'set_up_opensmile_extractor',
-           'opensmileExtractor']
+           'opensmileExtractor',
+           'set_up_emaae_extractor',
+           'EMAAEExtractor']

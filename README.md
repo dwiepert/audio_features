@@ -17,6 +17,7 @@ This will be the first stage of setting up this package to run. You will also ne
 * [database_utils repo](https://github.com/dwiepert/database_utils.git)
 * [sparc repo](https://github.com/dwiepert/sparc.git)
 * ffmpeg=6.1.1, you can do this with `conda install conda-forge::ffmpeg=6.1.1`
+* [emaae repo](https://github.com/dwiepert/emaae.git)
 * pytables, install with `conda install pytables`
 Please note that we are installing a fork of sparc to deal with a bug that hasn't been addressed in the official implementation
 
@@ -58,8 +59,8 @@ Other optional features of interest:
 * `--stim_bucket=BUCKETNAME, --out_bucket= BUCKETNAME, --sessions 1 2 ... num_sessions, --stories name1 ... namen` for working directly with stimulus bucket. If so, use sessions 1 2 3 4 5.
 
 ## Extracting features from features
-A handful of features are extracted based on other features (residuals, ema-wav, pca) or require alignment with features (word/phone identity). These are extracted with [feat_v_feat.py](https://github.com/dwiepert/audio_features/feat_v_feat.py). The following arguments are required/recommended to run extraction: 
-* `--feat_dir1=PATH, --feat_dir2=PATH`: give full file path to feature directories. `feat_dir1` specifies the from feature while `feat_dir2` is the feature needed for extraction. For word/phone identiy, feat_dir2 is the name of the directory you would like to save the word/phone features to. 
+A handful of features are extracted based on other features (residuals, ema-wav, pca, emaae) or require alignment with features (word/phone identity). These are extracted with [feat_v_feat.py](https://github.com/dwiepert/audio_features/feat_v_feat.py). The following arguments are required/recommended to run extraction: 
+* `--feat_dir1=PATH, --feat_dir2=PATH`: give full file path to feature directories. `feat_dir1` specifies the from feature while `feat_dir2` is the feature to extraction. For word/phone identiy, feat_dir2 is the name of the directory you would like to save the word/phone features to. 
 * `--feat1_type=FEATNAME, --feat2_type=FEATNAME`: specify the feature name. You can choose whatever name you want for features unless you are attempting to extract word/phone identity in which case it must be either 'word' or 'phone'.
 * `--feat1_times=PATH, --feat2_times=PATH`: give full file path to directory with times associated with the features. This is only required if a feature does not save times in the same directory as the features. 
 * `--out_dir=PATH`: path to save files to
@@ -77,6 +78,12 @@ The following features can be extracted using this script:
     - `--feat_dir1=PATH_TO_FEATURES --feat1_type=FEATURENAME--feat1_times=PATH_TO_FEATURE_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed for all features except ema. You can use wavLM times since they are aligned as long as residuals and other features were extracted from that set of wavLM features/times.
     - `--feat_dir2=PATH_TO_WORD/PHONE_IDENTITY_DIR --feat2_type=word/phone`. Set either word or phone for `feat2_type` and decide output name for `feat_dir2`. Do not need to set `feat2_times`.
     - `--function=extract`
+* EMAAE features (wavLM like features from SPARC EMA features). To extract these features, set the following arguments:
+    - `--feat_dir1=PATH_TO_SPARC_FEATS --feat1_type=ema`. `feat1_times` is not needed.
+    - `--feat_dir2` and other values are not needed.
+    - `--function=emaae`
+    - `--model_checkpoint=PATH_TO_LOCAL_CHECKPONT`. Should be a local .pth model weights file.
+    - `--model_config_path=PATH_TO_MODEL_CONFIG`. Should point to an EMAAE model config json file
 
 Other optional features of interest:
 * `--overwrite`, overwrite existing features
