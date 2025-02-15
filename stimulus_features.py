@@ -2,7 +2,7 @@
 Extract features from stimulus
 
 Author(s): Daniela Wiepert, Lasya Yakkala, Rachel Yamamoto
-Last modified: 11/14/2024
+Last modified: 02/15/2024
 """
 #IMPORTS
 ##built-in
@@ -10,12 +10,16 @@ import argparse
 import collections
 from pathlib import Path
 import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import cottoncandy as cc
 
 ##third-party
 import cottoncandy as cc
 from tqdm import tqdm
 import torchaudio
 import torch
+
 
 ##local
 from audio_features.extractors import *
@@ -142,7 +146,7 @@ if __name__ == "__main__":
     if not args.keep_all:
         model_save_path += '_pick{args.num_select_frames}skip{args.frame_skip}'
     if args.model_name:
-        model_save_path+= '_args.model_name'
+        model_save_path+= f'_{args.model_name}'
     if args.feature_type=='opensmile':
         to_add = f"{args.feature_set}_{args.feature_level}"
         if not args.default_extractor:
@@ -162,7 +166,7 @@ if __name__ == "__main__":
     else:
         local_path = args.out_dir / model_save_path
         local_path.mkdir(exist_ok=True)
-        
+
     print('Saving features to:', model_save_path)
     
     # STEP 2: STIMULUS SELECTION

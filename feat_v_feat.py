@@ -2,7 +2,7 @@
 Perform functions that take in two pairs of features and run functions on them. 
 
 Author(s): Daniela Wiepert, Lasya Yakkala, Rachel Yamamoto
-Last modified: 12/06/2024
+Last modified: 02/15/2024
 """
 #%%
 #IMPORTS
@@ -13,6 +13,10 @@ import glob
 import json
 import os
 from pathlib import Path
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import cottoncandy as cc
 
 #third-party
 import cottoncandy as cc
@@ -23,7 +27,7 @@ from tqdm import tqdm
 from audio_features.io import DatasetSplitter, load_features, align_times, Identity, copy_times
 from audio_features.models import LSTSQRegression, RRegression, LinearClassification, residualPCA
 from audio_preprocessing.io import select_stimuli
-from audio_features.extractors import EMAAEExtractor, set_up_emaae_extractor, BatchExtractor
+from audio_features.extractors import set_up_emaae_extractor
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
