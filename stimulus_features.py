@@ -176,8 +176,6 @@ if __name__ == "__main__":
         extractor = set_up_fbank_extractor(save_path=model_save_path, num_mel_bins=args.num_mel_bins, frame_length=args.frame_length, frame_shift=args.frame_shift,target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip, keep_all=args.keep_all)
     elif 'opensmile' in args.feature_type:
         extractor = set_up_opensmile_extractor(save_path=model_save_path, feature_set=args.feature_set, feature_level=args.feature_level, default_extractor=args.default_extractor, frame_length=args.frame_length, frame_shift=args.frame_shift,target_sample_rate=args.target_sample_rate, min_length_samples=args.min_length_samples, return_numpy= args.return_numpy, num_select_frames=args.num_select_frames, frame_skip=args.frame_skip, keep_all=args.keep_all )
-    elif 'emaae' in args.feature_type:
-        extractor = set_up_emaae_extractor(save_path=model_save_path, ckpt=args.checkpoint, config=args.modle_config_path, return_numpy=args.return_numpy, keep_all=args.keep_all)
     else:
         raise NotImplementedError(f'{args.feature_type} not supported.')
     

@@ -9,6 +9,7 @@ Last modified: 12/06/2024
 #built-in
 import argparse
 import collections
+import glob
 import json
 import os
 from pathlib import Path
@@ -19,7 +20,7 @@ import numpy as np
 from tqdm import tqdm
 
 #local
-from audio_features.io import DatasetSplitter, load_features, align_times, Identity
+from audio_features.io import DatasetSplitter, load_features, align_times, Identity, copy_times
 from audio_features.models import LSTSQRegression, RRegression, LinearClassification, residualPCA
 from audio_preprocessing.io import select_stimuli
 from audio_features.extractors import EMAAEExtractor, set_up_emaae_extractor, BatchExtractor
@@ -36,7 +37,6 @@ if __name__ == "__main__":
                         help='Specify the path to the second set of features (Always assumes this will be the features to use for the second feature argument in a function)')
     parser.add_argument('--feat2_type', type=str,
                         help='Specify the type of feature you are using for second argument')
-    parser.add_argument('--feat2_times', type=str, default=None)
     parser.add_argument('--out_dir', type=str, required=True,
                         help="Specify a local directory to save configuration files to. If not saving features to corral, this also specifies local directory to save files to.")
     parser.add_argument("--recursive", action="store_true", help='Recursively find .wav,.flac,.npz files in the feature and stimulus dirs')
@@ -102,6 +102,7 @@ if __name__ == "__main__":
     #print(cci_features)
     feats1 = load_features(args.feat_dir1, args.feat1_type, cci_features, args.recursive, ignore_str='times')
     if args.feat1_times is None:
+        assert not any(char.isdigit() for char in args.feat1_type), 'Must give feat1_times dir if working with wavlm layers.'
         args.feat1_times = args.feat_dir1
     feat1_times = load_features(args.feat1_times, 'times', cci_features, args.recursive, search_str='times')
 
@@ -114,9 +115,7 @@ if __name__ == "__main__":
         aligned_feats2 = aligned_feats1
     elif args.feat2_type not in ['word', 'phone'] and args.function != 'pca':
         feats2 = load_features(args.feat_dir2, args.feat2_type, cci_features, args.recursive, ignore_str='times')
-        if args.feat2_times is None:
-            args.feat2_times = args.feat_dir2
-        feat2_times = load_features(args.feat2_times,'times', cci_features, args.recursive, search_str='times')
+        feat2_times = load_features(args.feat_dir2,'times', cci_features, args.recursive, search_str='times')
         aligned_feats2 = align_times(feats2, feat2_times)
     else:
         if args.feat2_type == 'word':
@@ -187,7 +186,10 @@ if __name__ == "__main__":
 
         print('Saving regression results to:', new_path)
         
-        if args.function == 'lstsq':          
+        key_filter = list(train_feats1.keys()) + list(test_feats1.keys())
+        copy_times(args.feat1_times, new_path, key_filter)
+
+        if args.function == 'lstsq': 
             ## EXTRACT RESIDUALS
             print('LSTSQ Regression')
             model = LSTSQRegression(iv=train_feats1,
@@ -239,7 +241,7 @@ if __name__ == "__main__":
                                 )
             
         elif args.function == "emaae":
-            extractor = set_up_emaae_extractor(save_path=args.save_path, ckpt=args.model_checkpoint, config=args.model_config_path, return_numpy=args.return_numpy)
+            extractor = set_up_emaae_extractor(save_path=new_path, ckpt=args.model_checkpoint, config=args.model_config_path, return_numpy=args.return_numpy)
             for idx, story in enumerate(tqdm(train_feats1.keys())):
                 sample = {'fname':story, 'ema':train_feats1[story]}
                 new_sample = extractor(sample)                                   

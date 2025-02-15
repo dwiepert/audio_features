@@ -62,21 +62,21 @@ Other optional features of interest:
 A handful of features are extracted based on other features (residuals, ema-wav, pca, emaae) or require alignment with features (word/phone identity). These are extracted with [feat_v_feat.py](https://github.com/dwiepert/audio_features/feat_v_feat.py). The following arguments are required/recommended to run extraction: 
 * `--feat_dir1=PATH, --feat_dir2=PATH`: give full file path to feature directories. `feat_dir1` specifies the from feature while `feat_dir2` is the feature to extraction. For word/phone identiy, feat_dir2 is the name of the directory you would like to save the word/phone features to. 
 * `--feat1_type=FEATNAME, --feat2_type=FEATNAME`: specify the feature name. You can choose whatever name you want for features unless you are attempting to extract word/phone identity in which case it must be either 'word' or 'phone'.
-* `--feat1_times=PATH, --feat2_times=PATH`: give full file path to directory with times associated with the features. This is only required if a feature does not save times in the same directory as the features. 
+* `--feat1_times=PATH : give full file path to directory with times associated with the features. This is ONLY REQUIRED for using features that have modules like wavLM layer features!
 * `--out_dir=PATH`: path to save files to
 * `--function=FUNCTIONNAME`: choose function depending on which feature is being extracted (see below)
 
 The following features can be extracted using this script:
 * residuals and ema-wav features (predicted wavLM features from regression trained to map EMA to WAV). To extract these features, set the following arguments:
     - `--feat_dir1=PATH_TO_WAVLM_FEATS --feat1_type=wavlm-large.LAYER --feat1_times=PATH_TO_WAVLM_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed when using features from a specific layer as layer features are stored in subdirectories of the main wavlm directory. 
-    - `--feat_dir2=PATH_TO_SPARC/EMA_FEATS --feat2_type=ema`. Note that you do not need times for EMA as they are stored in the same level of the directory as the features. Additionally, the feat2_type MUST be 'ema' for purposes of processing ema features correctly.
+    - `--feat_dir2=PATH_TO_SPARC/EMA_FEATS --feat2_type=ema`. The feat2_type MUST be 'ema' for purposes of processing ema features correctly.
     - `--function=lstsq`: specifies we're extracting with least squares regression. 
 * pca features (based on residuals from lstsq regression). To extract these features, set the following arguments:
     - `--feat_dir1=PATH_TO_RESIDUALS --feat1_type=lstsq --feat1_times=PATH_TO_WAVLM_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed and you can use wavLM times since they are aligned as long as residuals were extracted from that set of wavLM features/times.
     - `--function=pca`
 * word/phone identity features. These need to be extracted for EACH of the main feature sets (wavlm, ema, emawav, residuals, pca-residuals). To extract these features, set the following arguments:
-    - `--feat_dir1=PATH_TO_FEATURES --feat1_type=FEATURENAME--feat1_times=PATH_TO_FEATURE_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed for all features except ema. You can use wavLM times since they are aligned as long as residuals and other features were extracted from that set of wavLM features/times.
-    - `--feat_dir2=PATH_TO_WORD/PHONE_IDENTITY_DIR --feat2_type=word/phone`. Set either word or phone for `feat2_type` and decide output name for `feat_dir2`. Do not need to set `feat2_times`.
+    - `--feat_dir1=PATH_TO_FEATURES --feat1_type=FEATURENAME`. Note that you can change `feat1_type` as you desire. 
+    - `--feat_dir2=PATH_TO_WORD/PHONE_IDENTITY_DIR --feat2_type=word/phone`. Set either word or phone for `feat2_type` and decide output name for `feat_dir2`.
     - `--function=extract`
 * EMAAE features (wavLM like features from SPARC EMA features). To extract these features, set the following arguments:
     - `--feat_dir1=PATH_TO_SPARC_FEATS --feat1_type=ema`. `feat1_times` is not needed.

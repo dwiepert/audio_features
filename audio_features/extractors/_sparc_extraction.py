@@ -171,5 +171,5 @@ def set_up_sparc_extractor(save_path:Union[str, Path], model_name:str="en", conf
     model = load_model(model_name=model_name, config=config, ckpt=ckpt, device=device, use_penn=use_penn)
     #TODO: figure out frame_length_sec
 
-    return SPARCExtractor(model=model, model_type=model_name, save_path=save_path, target_sample_rate=target_sample_rate, return_numpy=return_numpy, min_length_samples=min_length_samples,keep_all=keep_all)
+    return SPARCExtractor(model=model, model_type=model_name, save_path=save_path, target_sample_rate=target_sample_rate, return_numpy=return_numpy, keep_all=keep_all)
 
