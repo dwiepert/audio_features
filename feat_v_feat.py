@@ -108,9 +108,9 @@ if __name__ == "__main__":
     if args.feat1_times is None:
         try:
             assert not any(char.isdigit() for char in args.feat1_type), 'Must give feat1_times dir if working with wavlm layers.'
-            args.feat1_times = args.feat_dir1
         except:
-            print('No times.npz files in your feat1 directory.')
+            print('May not be times.npz files in your feat1 directory.')
+        args.feat1_times = args.feat_dir1
     feat1_times = load_features(args.feat1_times, 'times', cci_features, args.recursive, search_str='times')
 
     if stimulus_names is None:
