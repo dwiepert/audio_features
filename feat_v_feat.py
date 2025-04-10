@@ -106,8 +106,11 @@ if __name__ == "__main__":
     #print(cci_features)
     feats1 = load_features(args.feat_dir1, args.feat1_type, cci_features, args.recursive, ignore_str='times')
     if args.feat1_times is None:
-        assert not any(char.isdigit() for char in args.feat1_type), 'Must give feat1_times dir if working with wavlm layers.'
-        args.feat1_times = args.feat_dir1
+        try:
+            assert not any(char.isdigit() for char in args.feat1_type), 'Must give feat1_times dir if working with wavlm layers.'
+            args.feat1_times = args.feat_dir1
+        except:
+            print('No times.npz files in your feat1 directory.')
     feat1_times = load_features(args.feat1_times, 'times', cci_features, args.recursive, search_str='times')
 
     if stimulus_names is None:
