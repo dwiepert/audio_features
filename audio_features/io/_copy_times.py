@@ -17,10 +17,10 @@ def copy_times(original_times_dir:Union[str,Path], new_dir:Union[str,Path], key_
     :param key_filter: list of keys to include in the copy
     """
     times_paths = Path(original_times_dir).glob('*_times.npz')
+    print(times_paths)
     times_str = [str(s) for s in times_paths]
-    print(times_str)
-    keys = [s.name for s in times_paths]
-    print(keys)
+    times_keys = [s.name for s in times_paths]
+    print(times_keys)
     key_filter = [i for i in range(len(times_str)) if keys[i] in key_filter]
     times_str = times_str[key_filter]
     new_dir = Path(new_dir)
