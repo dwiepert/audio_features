@@ -18,7 +18,7 @@ def copy_times(original_times_dir:Union[str,Path], new_dir:Union[str,Path], key_
     """
     times_paths = Path(original_times_dir).glob('*_times.npz')
     new_dir = Path(new_dir)
-    new_dir.mkdir(parents=True, exit_ok=True)
+    new_dir.mkdir(parents=True, exist_ok=True)
     for s in times_paths:
         n = s.name.split("_")[0]
         if n in key_filter:
