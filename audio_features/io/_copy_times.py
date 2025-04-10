@@ -19,7 +19,7 @@ def copy_times(original_times_dir:Union[str,Path], new_dir:Union[str,Path], key_
     times_paths = Path(original_times_dir).glob('*_times.npz')
     times_str = [str(s) for s in times_paths]
     print(times_str)
-    keys = list(set([s.name.split("_")[0] for s in times_paths]))
+    keys = [s.name for s in times_paths]
     print(keys)
     key_filter = [i for i in range(len(times_str)) if keys[i] in key_filter]
     times_str = times_str[key_filter]
