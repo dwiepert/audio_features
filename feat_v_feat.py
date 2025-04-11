@@ -194,7 +194,6 @@ if __name__ == "__main__":
         print('Saving regression results to:', new_path)
         
         key_filter = list(train_feats1.keys()) + list(test_feats1.keys())
-        copy_times(args.feat1_times, new_path, key_filter)
 
         if args.function == 'lstsq': 
             ## EXTRACT RESIDUALS
@@ -207,6 +206,7 @@ if __name__ == "__main__":
                                     cci_features=cci_features,
                                     overwrite=args.overwrite,
                                     local_path=local_path)
+            copy_times(args.feat1_times, new_path, key_filter)
         elif args.function == 'ridge':
             print('Ridge Regression')
 
