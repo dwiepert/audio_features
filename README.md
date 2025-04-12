@@ -68,7 +68,7 @@ A handful of features are extracted based on other features (residuals, ema-wav,
 
 The following features can be extracted using this script:
 * residuals and ema-wav features (predicted wavLM features from regression trained to map EMA to WAV). To extract these features, set the following arguments:
-    - `--feat_dir1=PATH_TO_WAVLM_FEATS --feat1_type=wavlm-large.LAYER`. Note that you can change `feat1_type` as you desire. If an error pops up for missing times, you can use the function from [_copy_times.py](https://github.com/dwiepert/audio_features/audio_features/io/_copy_times.py) to manually copy the the times from the larger directory.
+    - `--feat_dir1=PATH_TO_WAVLM_FEATS --feat1_type=wavlm-large.LAYER`. Note that you can change `feat1_type` as you desire. If an error pops up for missing times, you can use [save_times.py](https://github.com/dwiepert/audio_features/helpers/save_times.py) to manually copy the the times from the larger directory.
     - `--feat_dir2=PATH_TO_SPARC/EMA_FEATS --feat2_type=ema`. The feat2_type MUST be 'ema' for purposes of processing ema features correctly.
     - `--function=lstsq`: specifies we're extracting with least squares regression. 
 * pca features (based on residuals from lstsq regression). To extract these features, set the following arguments:
