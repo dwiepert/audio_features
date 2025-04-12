@@ -17,7 +17,7 @@ def _process_ema(ema_feats:Dict[str,np.ndarray]) -> Dict[str,np.ndarray]:
     """
     Remove loudness from ema features
     :param ema_feats: dict of ema feats
-    :param new_feats: dict of ema feats with loudness excluded
+    :return new_feats: dict of ema feats with loudness excluded
     """
     mask = np.ones(14, dtype=bool)
     mask[[12]] = False
@@ -44,7 +44,7 @@ def load_features(feature_dir:Union[str,Path], feature_type:str, cci_features=No
     :param recursive: bool, indicates whether to load features recursively
     :param ignore_str: str, string pattern to ignore when loading features
     :param search_str: str, string pattern to search for when loading features
-    :param features: loaded feature dict
+    :return features: loaded feature dict
     """
 
     feature_dir = Path(feature_dir)

@@ -1,4 +1,4 @@
-__version__ = '0.6.1'
+__version__ = '0.6.2'
 
 #change log:
 # 0.0.0: first version
@@ -24,3 +24,4 @@ __version__ = '0.6.1'
 # 0.5.8: extract feature for an entire section (without changing context/chunk size parameters)
 # 0.6.0: added EMAAE feature extraction
 # 0.6.1: added times copying, debugged
+# 0.6.2: debugging

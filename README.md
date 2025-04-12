@@ -68,11 +68,11 @@ A handful of features are extracted based on other features (residuals, ema-wav,
 
 The following features can be extracted using this script:
 * residuals and ema-wav features (predicted wavLM features from regression trained to map EMA to WAV). To extract these features, set the following arguments:
-    - `--feat_dir1=PATH_TO_WAVLM_FEATS --feat1_type=wavlm-large.LAYER --feat1_times=PATH_TO_WAVLM_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed when using features from a specific layer as layer features are stored in subdirectories of the main wavlm directory. 
+    - `--feat_dir1=PATH_TO_WAVLM_FEATS --feat1_type=wavlm-large.LAYER`. Note that you can change `feat1_type` as you desire. If an error pops up for missing times, you can use the function from [_copy_times.py](https://github.com/dwiepert/audio_features/audio_features/io/_copy_times.py) to manually copy the the times from the larger directory.
     - `--feat_dir2=PATH_TO_SPARC/EMA_FEATS --feat2_type=ema`. The feat2_type MUST be 'ema' for purposes of processing ema features correctly.
     - `--function=lstsq`: specifies we're extracting with least squares regression. 
 * pca features (based on residuals from lstsq regression). To extract these features, set the following arguments:
-    - `--feat_dir1=PATH_TO_RESIDUALS --feat1_type=lstsq --feat1_times=PATH_TO_WAVLM_TIMES`. Note that you can change `feat1_type` as you desire. `feat1_times` is needed and you can use wavLM times since they are aligned as long as residuals were extracted from that set of wavLM features/times.
+    - `--feat_dir1=PATH_TO_RESIDUALS --feat1_type=lstsq`. Note that you can change `feat1_type` as you desire. 
     - `--function=pca`
 * word/phone identity features. These need to be extracted for EACH of the main feature sets (wavlm, ema, emawav, residuals, pca-residuals). To extract these features, set the following arguments:
     - `--feat_dir1=PATH_TO_FEATURES --feat1_type=FEATURENAME`. Note that you can change `feat1_type` as you desire. 

@@ -10,7 +10,7 @@ from typing import Union,List
 from pathlib import Path
 import shutil
 
-def copy_times(original_times_dir:Union[str,Path], new_dir:Union[str,Path], key_filter:List[str]):
+def copy_times(original_times_dir:Union[str,Path], new_dir:Union[str,Path], key_filter:List[str]) -> None:
     """
     :param original_times_dir: path like object pointing to original dir
     :param new_dir: path like object pointing to new destination

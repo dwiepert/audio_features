@@ -77,7 +77,7 @@ class EMAAEExtractor(BaseExtractor):
 
         return sample
 
-def set_up_emaae_extractor(save_path:Union[str,Path],ckpt:str, config:Union[str,Path], return_numpy:bool=True) -> EMAAEExtractor:
+def set_up_emaae_extractor(save_path:Union[str,Path], ckpt:str, config:Union[str,Path], return_numpy:bool=True) -> EMAAEExtractor:
     """
     Set up emaae extractor
 
@@ -85,7 +85,6 @@ def set_up_emaae_extractor(save_path:Union[str,Path],ckpt:str, config:Union[str,
     :param ckpt: model checkpoint
     :param config: model config
     :param return_numpy: bool, true if returning numpy
-    :param keep_all: bool, true if you want to keep all outputs from each batch
     :return: initialized EMAAEExtractor
     """
 
@@ -101,7 +100,9 @@ def set_up_emaae_extractor(save_path:Union[str,Path],ckpt:str, config:Union[str,
     with open(str(config), "rb") as f:
         model_config = json.load(f)
 
-    model = CNNAutoEncoder(input_dim=model_config['input_dim'], n_encoder=model_config['n_encoder'], n_decoder=model_config['n_decoder'], inner_size=model_config['inner_size'])
+    model = CNNAutoEncoder(input_dim=model_config['input_dim'], n_encoder=model_config['n_encoder'], n_decoder=model_config['n_decoder'], inner_size=model_config['inner_size'],
+                           batchnorm_first=model_config['batchnorm_firts'], final_tanh=model_config['final_tanh'], initial_ekernel=model_config['initial_ekernel'],
+                           initial_dkernel=model_config['initial_dkernel'], exclude_final_norm=model_config['exclude_final_norm'])
     checkpoint = torch.load(ckpt, map_location='cpu')
     model.load_state_dict(checkpoint)
     model = model.to(device)

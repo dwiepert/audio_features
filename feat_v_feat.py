@@ -251,7 +251,9 @@ if __name__ == "__main__":
             extractor = set_up_emaae_extractor(save_path=new_path, ckpt=args.model_checkpoint, config=args.model_config_path, return_numpy=args.return_numpy)
             for idx, story in enumerate(tqdm(train_feats1.keys())):
                 sample = {'fname':story, 'ema':train_feats1[story]}
-                new_sample = extractor(sample)                                   
+                new_sample = extractor(sample)     
+
+            copy_times(args.feat1_times, new_path, key_filter)                              
             print('Extraction completed')
 
         elif args.function == 'extract':

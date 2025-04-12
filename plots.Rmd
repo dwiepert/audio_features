@@ -27,6 +27,10 @@ read_split <- function(split_dir, metric='ridge'){
   
   all_corrs <- c()
   for (i in 1:length(files)){
+    if (grepl('times', files[i], fixed = TRUE)){
+      
+    }
+    else{
     corrs <- data.frame(np$load(files[i])['arr_0']) %>% na.omit()
     colnames(corrs) <- c("x")
     #m <- mean(as.numeric(corrs$x))
@@ -34,6 +38,7 @@ read_split <- function(split_dir, metric='ridge'){
     #avg_corr <- avg_corr + m
     #count <- count + 1
     all_corrs <- c(all_corrs, as.numeric(corrs$x))
+    }
   }
   #avg_corr <- avg_corr / count
   return(all_corrs)
@@ -42,7 +47,7 @@ read_split <- function(split_dir, metric='ridge'){
     files <- list.files(path=split_dir, pattern='json',  full.names=TRUE, recursive=TRUE)
     for (i in 1:length(files)){
       f <- files[i]
-      if (!grepl('config', f, fixed=TRUE) & !grepl('eval',f, fixed=TRUE)){
+      if (!grepl('config', f, fixed=TRUE) & !grepl('eval',f, fixed=TRUE) & !grepl('keepremove', f, fixed=TRUE) ){
         if (metric == 'multilabel'){
           if (grepl('_new',f, fixed=TRUE)){
               m <-as.data.frame(fromJSON(file=f)) %>% pivot_longer(cols=everything(), values_to='value', names_to='metric')
@@ -51,7 +56,7 @@ read_split <- function(split_dir, metric='ridge'){
         }
         if(metric=='multiclass'){
         m <-as.data.frame(fromJSON(file=f)) %>% pivot_longer(cols=everything(), values_to='value', names_to='metric')
-        df_list[[i]] <- m
+      df_list[[i]] <- m
         }
       }
     }
@@ -174,20 +179,28 @@ get_table_v2 <- function(varlist, met='multiclass'){
 }
 
 
-read_model_eval <- function(split_dir){
+read_model_eval <- function(split_dir, metric='multiclass'){
   df_list <- list()
     files <- list.files(path=split_dir, pattern='json',  full.names=TRUE, recursive=TRUE)
     for (i in 1:length(files)){
       f <- files[i]
       if(grepl('test_eval', f, fixed=TRUE)){
+        if(metric == 'multilabel'){
+          if (grepl('_new',f, fixed=TRUE) ){
+            m <-as.data.frame(fromJSON(file=f)) %>% pivot_longer(cols=everything(), values_to='value', names_to='metric')
+            df_list[[i]] <- m
+          }
+        }
+        else{
         m <-as.data.frame(fromJSON(file=f)) %>% pivot_longer(cols=everything(), values_to='value', names_to='metric')
             df_list[[i]] <- m
+        }
       }
     }
     return (dplyr::bind_rows(df_list))
 }
 
-get_table_v3 <- function(varlist){
+get_table_v3 <- function(varlist, metric='multiclass'){
   df_list <- list()
   dirs <- c()
   types <- c()
@@ -212,7 +225,7 @@ get_table_v3 <- function(varlist){
   
   for (i in 1:length(dirs)){
     s <- dirs[i]
-    out_df <- read_model_eval(dirs[i])
+    out_df <- read_model_eval(dirs[i], metric=metric)
     df_list[[i]] <- out_df %>% mutate(type=types[i], feat1=feat1s[i], feat2=feat2s[i])
   }
    
@@ -223,7 +236,7 @@ get_table_v3 <- function(varlist){
 ```{r load-data}
 
 result_dirs <- get_subdirs('./data/new_results', '*')
-result_dirs <- result_dirs[-length(result_dirs)]
+#result_dirs <- result_dirs[-length(result_dirs)]
 
 ridge_dirs<-c()
 multiclass_dirs <-c()
@@ -258,10 +271,10 @@ mlc_eval <- get_table_v3(vars2)
 vars3 <- get_splits_clf(multilabel_dirs)
 multilabel_data <- get_table_v2(vars3, met='multilabel') %>%
   separate(metric, 
-           into = c("metric_type", "category"), 
+           into = c("metric_type"), 
            sep = "(?<=[A-Za-z])(?=[0-9])"
            )
-mlb_eval <- get_table_v3(vars3)%>%
+mlb_eval <- get_table_v3(vars3, metric='multilabel')%>%
   separate(metric, 
            into = c("metric_type", "category"), 
            sep = "(?<=[A-Za-z])(?=[0-9])"
@@ -276,7 +289,7 @@ clf_avg <- clf_eval %>% group_by(feat2,type) %>% summarize(mean=mean(value), sd=
 ```{r ridge_plots}
 ridge_plot <- function(df){
   
-  stat <- df %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='emawav' & group2=='residuals')) %>% add_xy_position(x="Feature") %>% mutate(y.position=y.position-0.1)
+  stat <- df %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='ema' & group2=='residuals')) %>% add_xy_position(x="Feature") %>% mutate(y.position=y.position-0.1)
   
   ypos <- stat$y.position
   if (ypos[[2]] > 1){
@@ -301,12 +314,12 @@ ridge <- ridge_data %>% mutate(orig_feat1=feat1, orig_feat2=feat2)
 ridge$feat1[ridge$feat1 == 'lstsq'] = 'residuals'
 ridge$feat1[ridge$feat1 == 'pca-lstsq'] = 'pca-residuals'
 
-ridge$feat1[ridge$feat1== 'wavlm-large.9'] = 'wavlm'
+ridge$feat1[ridge$feat1== 'wavlm-large.8'] = 'wavlm'
 ridge$feat2[ridge$feat2== 'word'] = 'Word Embedding'
 ridge$feat2[ridge$feat2== 'fbank'] = 'FBANK-23'
 ridge$feat2[ridge$feat2== 'fbank40'] = 'FBANK-40'
 ridge$feat2[ridge$feat2== 'opensmile'] = 'ComParE 2016'
-ridge <- ridge %>% mutate(correlation=values, Feature=factor(feat1, levels=c("ema","emawav", "pca-residuals", "residuals", "wavlm"))) 
+ridge <- ridge %>% mutate(correlation=values, Feature=factor(feat1, levels=c("ema", "pca-residuals", "residuals", "wavlm"))) 
 ### STATS
 rstats <- ridge_stats(ridge)
  stats_feat2 <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% ungroup() %>% group_by(feat2)  %>% pairwise_t_test(value ~ feats,p.adjust.method='bonferroni')
