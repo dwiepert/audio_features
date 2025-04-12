@@ -4,6 +4,7 @@ output: html_document
 date: "2024-12-01"
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -267,7 +268,7 @@ mlc_eval <- get_table_v3(vars2)
 
 
 
-
+# THIS WILL FAIL IF YOU HAVEN'T RUN fix_multilabel_results.py
 vars3 <- get_splits_clf(multilabel_dirs)
 multilabel_data <- get_table_v2(vars3, met='multilabel') %>%
   separate(metric, 
