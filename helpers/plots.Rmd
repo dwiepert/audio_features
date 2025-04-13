@@ -4,7 +4,6 @@ output: html_document
 date: "2024-12-01"
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -268,7 +267,7 @@ mlc_eval <- get_table_v3(vars2)
 
 
 
-# THIS WILL FAIL IF YOU HAVEN'T RUN fix_multilabel_results.py
+
 vars3 <- get_splits_clf(multilabel_dirs)
 multilabel_data <- get_table_v2(vars3, met='multilabel') %>%
   separate(metric, 
@@ -358,7 +357,7 @@ clf_plot <- function(df){
   acc_df <- df %>% filter(metric=='accuracy') %>% mutate(accuracy=value*100) %>% select(Feature, accuracy, feat2)
   
   p_list <- list()
-  acc_stat <- acc_df %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni')  %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='emawav' & group2=='residuals')) %>% add_xy_position(x = "Feature")
+  acc_stat <- acc_df %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni')  %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='ema' & group2=='residuals')) %>% add_xy_position(x = "Feature")
   
   ypos <- acc_stat$y.position
   if (ypos[[2]] > 100){
@@ -370,7 +369,7 @@ clf_plot <- function(df){
   scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1)) + ylim(0,100) + ylab('Accuracy (%)')+ stat_pvalue_manual(acc_stat, label = "p.adj.signif", tip.length=0.01) 
   
   bacc_df <- df %>% filter(metric=='balanced_accuracy') %>% mutate(balanced_accuracy=value*100)  %>% select(Feature, balanced_accuracy, feat2)
-  bacc_stat <- bacc_df %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='emawav' & group2=='residuals')) %>% add_xy_position(x="Feature")
+  bacc_stat <- bacc_df %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='ema' & group2=='residuals')) %>% add_xy_position(x="Feature")
   
   ypos <- bacc_stat$y.position
   if (ypos[[2]] > 100){
@@ -389,10 +388,10 @@ mlt <- multiclass_data
 mlt$feat1[mlt$feat1 == 'lstsq'] = 'residuals'
 mlt$feat1[mlt$feat1 == 'pca-lstsq'] = 'pca-residuals'
 
-mlt$feat1[mlt$feat1== 'wavlm-large.9'] = 'wavlm'
+mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm'
 mlt$feat2[mlt$feat2== 'word'] = 'Word Identity'
 mlt$feat2[mlt$feat2== 'phone'] = 'Phone Identity'
-mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema","emawav", "pca-residuals", "residuals", "wavlm"))) 
+mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "residuals", "wavlm"))) 
 
 word <- clf_plot(mlt %>% filter(feat2=='Word Identity'))
 phone <- clf_plot(mlt %>% filter(feat2=='Phone Identity'))
@@ -408,9 +407,9 @@ mlt <- multilabel_data
 mlt$feat1[mlt$feat1 == 'lstsq'] = 'residuals'
 mlt$feat1[mlt$feat1 == 'pca-lstsq'] = 'pca-residuals'
 
-mlt$feat1[mlt$feat1== 'wavlm-large.9'] = 'wavlm'
+mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm'
 mlt$feat2[mlt$feat2== 'phone'] = 'Articulatory Features'
-mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema","emawav", "pca-residuals", "residuals", "wavlm"))) %>% mutate(metric=metric_type)
+mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "residuals", "wavlm"))) %>% mutate(metric=metric_type)
 art <- clf_plot(mlt)
 
 p <- ggarrange(word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), art[[2]] + theme(axis.title.x = element_blank()), nrow=1, ncol=3, common.legend=TRUE, legend="right")

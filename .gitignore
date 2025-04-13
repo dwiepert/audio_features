@@ -20,3 +20,4 @@ newtest.py
 .vscode
 
 helpers/runs.txt
+.RDataTmp
