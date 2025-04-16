@@ -66,7 +66,7 @@ class EMAAEExtractor(BaseExtractor):
         features = torch.swapaxes(features, 0,1)
 
         if self.return_numpy:
-            features = features.cpu().numpy()
+            features = features.detach().cpu().numpy()
             add = sample['fname'] + '.npz'
             new_path = self.save_path / add
             np.save(new_path, features)
