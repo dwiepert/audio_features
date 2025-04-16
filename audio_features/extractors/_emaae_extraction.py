@@ -69,7 +69,7 @@ class EMAAEExtractor(BaseExtractor):
             features = features.detach().cpu().numpy()
             add = sample['fname'] + '.npz'
             new_path = self.save_path / add
-            np.save(new_path, features)
+            np.savez(new_path, features)
         else:
             add = sample['fname'] + '.pt'
             new_path = self.save_path / add
