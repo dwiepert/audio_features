@@ -27,8 +27,8 @@ class EMAAEExtractor(BaseExtractor):
     :param target_sample_rate: int, target sample rate for model
     :param return_numpy: bool, true if returning numpy
     """
-    def __init__(self, model:CNNAutoEncoder, save_path:Union[str, Path], target_sample_rate:int=16000, return_numpy:bool=True):
-        super().__init__(target_sample_rate=target_sample_rate, return_numpy=return_numpy,device=device)
+    def __init__(self, model:CNNAutoEncoder, save_path:Union[str, Path], target_sample_rate:int=16000, return_numpy:bool=True, device=None):
+        super().__init__(target_sample_rate=target_sample_rate, return_numpy=return_numpy, device=device)
         self.model = model 
         self.model_type = model.get_type()
         self.device=device
