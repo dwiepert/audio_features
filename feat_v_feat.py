@@ -105,7 +105,7 @@ if __name__ == "__main__":
     ## LOAD IN FEATURES
     #print(cci_features)
     feats1 = load_features(args.feat_dir1, args.feat1_type, cci_features, args.recursive, ignore_str='times')
-    print(feats1)
+    #print(feats1)
     if args.feat1_times is None:
         try:
             assert not any(char.isdigit() for char in args.feat1_type), 'Must give feat1_times dir if working with wavlm layers.'
