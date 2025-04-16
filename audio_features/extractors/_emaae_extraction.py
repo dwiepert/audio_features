@@ -36,7 +36,7 @@ class EMAAEExtractor(BaseExtractor):
             "supported  (because they don't provide the downsampling rate)"
         
         self.config = {'feature_type': 'emaae', 'model_type': self.model_type,
-                       'return_numpy': self.return_numpy, 'keep_all':self.keep_all}
+                       'return_numpy': self.return_numpy}
 
         #saving things
         self.save_path = Path(save_path)
