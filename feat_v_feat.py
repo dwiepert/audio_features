@@ -118,9 +118,9 @@ if __name__ == "__main__":
 
     aligned_feats1 = align_times(feats1, feat1_times)
 
-    if args.function == 'pca':
+    if args.function == 'pca' or args.function=='emaae':
         aligned_feats2 = aligned_feats1
-    elif args.feat2_type not in ['word', 'phone'] and args.function != 'pca':
+    elif args.feat2_type not in ['word', 'phone'] and args.function != 'pca' and args.function != 'emaae':
         feats2 = load_features(args.feat_dir2, args.feat2_type, cci_features, args.recursive, ignore_str='times')
         feat2_times = load_features(args.feat_dir2,'times', cci_features, args.recursive, search_str='times')
         aligned_feats2 = align_times(feats2, feat2_times)

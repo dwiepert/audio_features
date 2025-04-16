@@ -62,6 +62,7 @@ class EMAAEExtractor(BaseExtractor):
         ema = sample['ema']
 
         features = torch.squeeze(self.model.encode(ema))
+        print(features.shape)
 
         if self.return_numpy:
             features = features.numpy()
@@ -100,9 +101,9 @@ def set_up_emaae_extractor(save_path:Union[str,Path], ckpt:str, config:Union[str
     with open(str(config), "rb") as f:
         model_config = json.load(f)
 
-    model = CNNAutoEncoder(input_dim=model_config['input_dim'], n_encoder=model_config['n_encoder'], n_decoder=model_config['n_decoder'], inner_size=model_config['inner_size'],
-                           batchnorm_first=model_config['batchnorm_firts'], final_tanh=model_config['final_tanh'], initial_ekernel=model_config['initial_ekernel'],
-                           initial_dkernel=model_config['initial_dkernel'], exclude_final_norm=model_config['exclude_final_norm'])
+    model = CNNAutoEncoder(input_dim=model_config['input_dim'], n_encoder=model_config['n_encoder'], n_decoder=model_config['n_decoder'], 
+                               inner_size=model_config['inner_size'], batchnorm_first=model_config['batchnorm_first'], final_tanh=model_config['final_tanh'],
+                                 initial_ekernel=model_config['initial_ekernel'], initial_dkernel=model_config['initial_dkernel'], exclude_final_norm =model_config['exclude_final_norm'], exclude_all_norm=model_config['exclude_all_norm'])
     checkpoint = torch.load(ckpt, map_location='cpu')
     model.load_state_dict(checkpoint)
     model = model.to(device)
