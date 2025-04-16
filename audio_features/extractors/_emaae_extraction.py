@@ -28,10 +28,10 @@ class EMAAEExtractor(BaseExtractor):
     :param return_numpy: bool, true if returning numpy
     """
     def __init__(self, model:CNNAutoEncoder, save_path:Union[str, Path], target_sample_rate:int=16000, return_numpy:bool=True):
-        super().__init__(target_sample_rate=target_sample_rate, return_numpy=return_numpy,)
+        super().__init__(target_sample_rate=target_sample_rate, return_numpy=return_numpy,device=device)
         self.model = model 
         self.model_type = model.get_type()
-
+        self.device=device
         assert len(self.output_inds) == 1, "Only one output per evaluation is "\
             "supported  (because they don't provide the downsampling rate)"
         
@@ -60,7 +60,7 @@ class EMAAEExtractor(BaseExtractor):
         for k in keys: assert k in sample, f'{k} not in sample. Check that audio is processed correctly.'
 
         ema = sample['ema']
-        ema = torch.from_numpy(np.expand_dims(np.swapaxes(ema,0,1), axis=0))
+        ema = torch.from_numpy(np.expand_dims(np.swapaxes(ema,0,1), axis=0)).to(self.device)
 
         features = torch.squeeze(self.model.encode(ema))
         features = torch.swapaxes(features, 0,1)
@@ -109,4 +109,4 @@ def set_up_emaae_extractor(save_path:Union[str,Path], ckpt:str, config:Union[str
     model.load_state_dict(checkpoint)
     model = model.to(device)
 
-    return EMAAEExtractor(model=model, save_path=save_path, return_numpy=return_numpy)
+    return EMAAEExtractor(model=model, save_path=save_path, return_numpy=return_numpy, device=device)
