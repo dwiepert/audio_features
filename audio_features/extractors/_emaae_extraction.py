@@ -97,7 +97,7 @@ def set_up_emaae_extractor(save_path:Union[str,Path], ckpt:str, config:Union[str
         device = "cpu"
     
     assert Path(config).exists(), 'Must give model config file for EMAAE'
-    assert Path(checkpoint).exists(), 'Must give a model checkpoint for EMAAE.'
+    assert Path(ckpt).exists(), 'Must give a model checkpoint for EMAAE.'
     with open(str(config), "rb") as f:
         model_config = json.load(f)
 
