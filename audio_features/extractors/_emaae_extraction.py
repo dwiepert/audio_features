@@ -60,7 +60,7 @@ class EMAAEExtractor(BaseExtractor):
         for k in keys: assert k in sample, f'{k} not in sample. Check that audio is processed correctly.'
 
         ema = sample['ema']
-        print(ema.shape)
+        ema = np.expand_dims(ema, axis=0)
 
         features = torch.squeeze(self.model.encode(ema))
         print(features.shape)
