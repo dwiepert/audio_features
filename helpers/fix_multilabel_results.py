@@ -8,7 +8,8 @@ import numpy as np
 
 folder = './data/new_results' # WHERE RESULTS WERE SAVED TO
 jsons = glob.glob(os.path.join(folder,'*/*/*/*.json'),recursive=True)
-jsons = [j for j in jsons if 'test_eval' in j]
+jsons = [j for j in jsons if 'multilabel' in j]
+#jsons = [j for j in jsons if 'test_eval' in j]
 #jsons = [j for j in jsons if ('multilabel' in j and '_new' not in j)]
 #jsons = [j for j in jsons if 'eval' not in j]
 jsons = [j for j in jsons if 'config' not in j]

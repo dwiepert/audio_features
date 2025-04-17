@@ -289,7 +289,7 @@ clf_avg <- clf_eval %>% group_by(feat2,type) %>% summarize(mean=mean(value), sd=
 ```{r ridge_plots}
 ridge_plot <- function(df){
   
-  stat <- df %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='ema' & group2=='residuals')) %>% add_xy_position(x="Feature") %>% mutate(y.position=y.position-0.1)
+  stat <- df %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='sfa-ema' & group2=='residuals')) %>% add_xy_position(x="Feature") %>% mutate(y.position=y.position-0.1)
   
   ypos <- stat$y.position
   if (ypos[[2]] > 1){
@@ -313,13 +313,13 @@ ridge_stats <- function(df){
 ridge <- ridge_data %>% mutate(orig_feat1=feat1, orig_feat2=feat2)
 ridge$feat1[ridge$feat1 == 'lstsq'] = 'residuals'
 ridge$feat1[ridge$feat1 == 'pca-lstsq'] = 'pca-residuals'
-
 ridge$feat1[ridge$feat1== 'wavlm-large.8'] = 'wavlm'
+
 ridge$feat2[ridge$feat2== 'word'] = 'Word Embedding'
 ridge$feat2[ridge$feat2== 'fbank'] = 'FBANK-23'
 ridge$feat2[ridge$feat2== 'fbank40'] = 'FBANK-40'
 ridge$feat2[ridge$feat2== 'opensmile'] = 'ComParE 2016'
-ridge <- ridge %>% mutate(correlation=values, Feature=factor(feat1, levels=c("ema", "pca-residuals", "residuals", "wavlm"))) 
+ridge <- ridge %>% mutate(correlation=values, Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav", "sfa-ema", "residuals", "wavlm"))) 
 ### STATS
 rstats <- ridge_stats(ridge)
  stats_feat2 <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% ungroup() %>% group_by(feat2)  %>% pairwise_t_test(value ~ feats,p.adjust.method='bonferroni')
@@ -357,7 +357,7 @@ clf_plot <- function(df){
   acc_df <- df %>% filter(metric=='accuracy') %>% mutate(accuracy=value*100) %>% select(Feature, accuracy, feat2)
   
   p_list <- list()
-  acc_stat <- acc_df %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni')  %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='ema' & group2=='residuals')) %>% add_xy_position(x = "Feature")
+  acc_stat <- acc_df %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni')  %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='sfa-ema' & group2=='residuals')) %>% add_xy_position(x = "Feature")
   
   ypos <- acc_stat$y.position
   if (ypos[[2]] > 100){
@@ -369,7 +369,7 @@ clf_plot <- function(df){
   scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1)) + ylim(0,100) + ylab('Accuracy (%)')+ stat_pvalue_manual(acc_stat, label = "p.adj.signif", tip.length=0.01) 
   
   bacc_df <- df %>% filter(metric=='balanced_accuracy') %>% mutate(balanced_accuracy=value*100)  %>% select(Feature, balanced_accuracy, feat2)
-  bacc_stat <- bacc_df %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='ema' & group2=='residuals')) %>% add_xy_position(x="Feature")
+  bacc_stat <- bacc_df %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='sfa-ema' & group2=='residuals')) %>% add_xy_position(x="Feature")
   
   ypos <- bacc_stat$y.position
   if (ypos[[2]] > 100){
@@ -391,7 +391,7 @@ mlt$feat1[mlt$feat1 == 'pca-lstsq'] = 'pca-residuals'
 mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm'
 mlt$feat2[mlt$feat2== 'word'] = 'Word Identity'
 mlt$feat2[mlt$feat2== 'phone'] = 'Phone Identity'
-mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "residuals", "wavlm"))) 
+mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav","sfa-ema","residuals", "wavlm"))) 
 
 word <- clf_plot(mlt %>% filter(feat2=='Word Identity'))
 phone <- clf_plot(mlt %>% filter(feat2=='Phone Identity'))
@@ -409,7 +409,7 @@ mlt$feat1[mlt$feat1 == 'pca-lstsq'] = 'pca-residuals'
 
 mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm'
 mlt$feat2[mlt$feat2== 'phone'] = 'Articulatory Features'
-mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "residuals", "wavlm"))) %>% mutate(metric=metric_type)
+mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav", "sfa-ema", "residuals", "wavlm"))) %>% mutate(metric=metric_type)
 art <- clf_plot(mlt)
 
 p <- ggarrange(word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), art[[2]] + theme(axis.title.x = element_blank()), nrow=1, ncol=3, common.legend=TRUE, legend="right")
