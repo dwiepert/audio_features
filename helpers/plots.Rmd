@@ -235,7 +235,7 @@ get_table_v3 <- function(varlist, metric='multiclass'){
 
 ```{r load-data}
 
-result_dirs <- get_subdirs('./data/new_results', '*')
+result_dirs <- get_subdirs('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results', '*')
 #result_dirs <- result_dirs[-length(result_dirs)]
 
 ridge_dirs<-c()
@@ -257,8 +257,13 @@ for (i in 1:length(result_dirs)){
 vars <- get_splits_reg(ridge_dirs)
 ridge_data <- get_table_v1(vars)
 ridge_eval <- get_table_v3(vars)
-r2_ridge <- ridge_eval %>% filter(metric=='r2') %>% group_by( feat2) %>% summarise(mean=mean(value), sd=sd(value))
-r2_test <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat2,p.adjust.method='bonferroni')
+r2_ridge <- ridge_eval %>% filter(metric=='r2') %>% group_by(feat1) %>% summarise(mean=mean(value), sd=sd(value))
+
+ridge_eval <- ridge_eval %>% mutate(feats=paste0(feat1,'_', feat2))
+
+r2_ridge <- ridge_eval %>% filter(metric=='r2') %>% group_by(feats) %>% summarise(mean=mean(value), sd=sd(value))
+r2_test_byprobe <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat2,p.adjust.method='bonferroni')
+r2_test_byfeat <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat1,p.adjust.method='bonferroni')
 
 
 vars2 <- get_splits_clf(multiclass_dirs)
@@ -282,23 +287,38 @@ mlb_eval <- get_table_v3(vars3, metric='multilabel')%>%
 
 clf_eval <- rbind(mlc_eval, mlb_eval) %>% filter(metric=='balanced_accuracy') %>% mutate(feats=paste0(feat1,'_', feat2, '_', type), new_type=paste0(feat2,'_',type))
 
-clf_tst <- clf_eval %>% pairwise_t_test(value ~ new_type,p.adjust.method='bonferroni')
-clf_avg <- clf_eval %>% group_by(feat2,type) %>% summarize(mean=mean(value), sd=sd(value))
+clf_tst <- clf_eval %>% pairwise_t_test(value ~ feat1,p.adjust.method='bonferroni')
+clf_avg <- clf_eval %>% group_by(new_type ) %>% summarize(mean=mean(value), sd=sd(value))
 ```
 
 ```{r ridge_plots}
 ridge_plot <- function(df){
   
-  stat <- df %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='sfa-ema' & group2=='residuals')) %>% add_xy_position(x="Feature") %>% mutate(y.position=y.position-0.1)
+  stat1 <- df %>% filter(Feature == 'sfa-ema' | Feature == 'residuals' | Feature == 'wavlm-large' ) %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x="Feature") %>% mutate(y.position=y.position-0.1)
+  stat2 <- df %>% filter(Feature == 'ema' | Feature == 'pca-residuals' | Feature == 'pca-wav' ) %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x="Feature") %>% mutate(y.position=y.position-0.1)
+  stat3 <- df %>% filter(Feature == 'ema' | Feature == 'sfa-ema') %>% pairwise_t_test(correlation~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x = "Feature") %>% mutate(y.position=y.position-0.1)
   
+  stat <- rbind(stat2, stat1)
   ypos <- stat$y.position
-  if (ypos[[2]] > 1){
-    diff <- (ypos[[2]]-1) + 0.03
-    stat <- stat %>% mutate(y.position=y.position-diff)
-  }
+  diff <- 0.04
+  ypos[[2]] <- ypos[[1]] + diff
+  ypos[[3]] <- ypos[[2]] + diff
+  ypos[[5]] <- ypos[[4]] + diff
+  ypos[[6]] <- ypos[[5]] + diff
+  stat$y.position <- ypos
+
+  
+  
+  #ypos <- stat$y.position
+  #if (ypos[[2]] > 1){
+  #  diff <- (ypos[[2]]-1) + 0.03
+  #  stat <- stat %>% mutate(y.position=y.position-diff)
+  #}
   
   p <- df %>% ggplot( aes(Feature, correlation)) + geom_boxplot(aes(fill=Feature))+ facet_grid(~feat2) +
-  scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1)) + ylim(0,1) +ylab('Correlation') + stat_pvalue_manual(stat, label = "p.adj.signif", tip.length = 0.01)
+  scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none") + ylim(0,1) +ylab('Correlation') + stat_pvalue_manual(stat, label = "p.adj.signif", tip.length = 0.01)
+  
+  
   
   return(p)
 }
@@ -313,36 +333,36 @@ ridge_stats <- function(df){
 ridge <- ridge_data %>% mutate(orig_feat1=feat1, orig_feat2=feat2)
 ridge$feat1[ridge$feat1 == 'lstsq'] = 'residuals'
 ridge$feat1[ridge$feat1 == 'pca-lstsq'] = 'pca-residuals'
-ridge$feat1[ridge$feat1== 'wavlm-large.8'] = 'wavlm'
+ridge$feat1[ridge$feat1== 'wavlm-large.8'] = 'wavlm-large'
 
 ridge$feat2[ridge$feat2== 'word'] = 'Word Embedding'
 ridge$feat2[ridge$feat2== 'fbank'] = 'FBANK-23'
 ridge$feat2[ridge$feat2== 'fbank40'] = 'FBANK-40'
 ridge$feat2[ridge$feat2== 'opensmile'] = 'ComParE 2016'
-ridge <- ridge %>% mutate(correlation=values, Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav", "sfa-ema", "residuals", "wavlm"))) 
+ridge <- ridge %>% mutate(correlation=values, Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav", "sfa-ema", "residuals", "wavlm-large"))) 
 ### STATS
 rstats <- ridge_stats(ridge)
  stats_feat2 <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% ungroup() %>% group_by(feat2)  %>% pairwise_t_test(value ~ feats,p.adjust.method='bonferroni')
   stats_feat1 <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% ungroup() %>% group_by(feat1)  %>% pairwise_t_test(value ~ feats,p.adjust.method='bonferroni')
   
 p1 <- ridge_plot(df = ridge %>% filter(feat2=='FBANK-23'))
-ggsave('./data/new_results/fbank.png', height=5, width=4.5
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/fbank.png', height=5, width=4.5
 )
 
 p2 <- ridge_plot(df = ridge %>% filter(feat2=='FBANK-40'))
-ggsave('./data/new_results/fbank40.png', height=5, width=4.5
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/fbank40.png', height=5, width=4.5
 )
 
 p3 <- ridge_plot(df = ridge %>% filter(feat2=='ComParE 2016'))
-ggsave('./data/new_results/opensmile.png', height=5, width=4.5)
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/opensmile.png', height=5, width=4.5)
        
 p4 <- ridge_plot(df = ridge %>% filter(feat2=='Word Embedding'))
-ggsave('./data/new_results/word.png', height=5, width=4.5
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/word.png', height=5, width=4.5
 )
 
 gg <- ggarrange(p2, p3, p4, nrow=1, ncol=3, common.legend=TRUE,legend="right")
  
-ggsave('./data/new_results/ridge.png', height=4, width=12)
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/ridge.png', height=4, width=12)
 
 
 ### STATS
@@ -352,34 +372,52 @@ rstats <- ridge_stats(ridge)
 ```
 
 ```{r identity_plots}
+
+lower_ypos <- function(ypos){
+  
+}
 clf_plot <- function(df){
   
   acc_df <- df %>% filter(metric=='accuracy') %>% mutate(accuracy=value*100) %>% select(Feature, accuracy, feat2)
   
   p_list <- list()
-  acc_stat <- acc_df %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni')  %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='sfa-ema' & group2=='residuals')) %>% add_xy_position(x = "Feature")
+ # acc_stat1 <- acc_df %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni')  %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='sfa-ema' & group2=='residuals') | (group1=='ema' & group2=='pca-wav') | (group1=='pca-residuals' & group2=='pca-wav') | (group1=='sfa-ema' & group2=='wavlm-large') | (group1=='residuals' & group2=='wavlm-large')) %>% add_xy_position(x = "Feature")
+  
+  acc_stat1 <- acc_df %>% filter(Feature == 'sfa-ema' | Feature == 'residuals' | Feature == 'wavlm-large' ) %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x = "Feature")
+  acc_stat2 <- acc_df %>% filter(Feature == 'ema' | Feature == 'pca-residuals' | Feature == 'pca-wav' ) %>% pairwise_t_test(accuracy~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x = "Feature")
+  
+  acc_stat <- rbind(acc_stat2, acc_stat1)
   
   ypos <- acc_stat$y.position
-  if (ypos[[2]] > 100){
-    diff <- (ypos[[2]]-100) + 5
-    acc_stat <- acc_stat %>% mutate(y.position=y.position-diff)
-  }
+
+  
+  
   
   p_list[[1]] <- acc_df %>% ggplot(aes(Feature, accuracy)) + geom_boxplot(aes(fill=Feature))+ facet_grid(~feat2) +
-  scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1)) + ylim(0,100) + ylab('Accuracy (%)')+ stat_pvalue_manual(acc_stat, label = "p.adj.signif", tip.length=0.01) 
-  
+  scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none") + ylab('Accuracy (%)') + stat_pvalue_manual(acc_stat, label = "p.adj.signif", tip.length=0.01) + ylim(0,100) 
+
   bacc_df <- df %>% filter(metric=='balanced_accuracy') %>% mutate(balanced_accuracy=value*100)  %>% select(Feature, balanced_accuracy, feat2)
-  bacc_stat <- bacc_df %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% filter((group1=='ema' & group2=='pca-residuals') | (group1=='sfa-ema' & group2=='residuals')) %>% add_xy_position(x="Feature")
+  bacc_stat1 <- bacc_df %>% filter(Feature == 'sfa-ema' | Feature == 'residuals' | Feature == 'wavlm-large' ) %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x = "Feature")
+  bacc_stat2 <- bacc_df %>% filter(Feature == 'ema' | Feature == 'pca-residuals' | Feature == 'pca-wav' ) %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x = "Feature")
+  bacc_stat3 <- bacc_df %>% filter(Feature == 'ema' | Feature == 'sfa-ema') %>% pairwise_t_test(balanced_accuracy~Feature, p.adjust.method='bonferroni') %>% add_xy_position(x = "Feature")
   
+  bacc_stat <- rbind(bacc_stat2, bacc_stat1)
   ypos <- bacc_stat$y.position
-  if (ypos[[2]] > 100){
-    diff <- (ypos[[2]]-100) + 5
-    bacc_stat <- bacc_stat %>% mutate(y.position=y.position-diff)
-  }
+  diff <- 4
+  ypos[[2]] <- ypos[[1]] + diff
+  ypos[[3]] <- ypos[[2]] + diff
+  ypos[[5]] <- ypos[[4]] + diff
+  ypos[[6]] <- ypos[[5]] + diff
+  bacc_stat$y.position <- ypos
+
+  #if (ypos[[2]] > 100){
+  #  diff <- (ypos[[2]]-100) + 5
+  #  bacc_stat <- bacc_stat %>% mutate(y.position=y.position-diff)
+  #}
   
   
   p_list[[2]] <- bacc_df  %>% ggplot(aes(Feature, balanced_accuracy)) + geom_boxplot(aes(fill=Feature))+ facet_grid(~feat2) +
-  scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1)) + ylim(0,100) + ylab('Balanced Accuracy (%)')  + 
+  scale_fill_discrete_sequential(palette="ag_Sunset") + theme_bw() + theme(axis.text.x = element_text(angle = 45, hjust=1), legend.position="none") + ylim(0,100) + ylab('Balanced Accuracy (%)')  + 
   stat_pvalue_manual(bacc_stat, label = "p.adj.signif", tip.length = 0.01)
   return(p_list)
 }
@@ -388,35 +426,35 @@ mlt <- multiclass_data
 mlt$feat1[mlt$feat1 == 'lstsq'] = 'residuals'
 mlt$feat1[mlt$feat1 == 'pca-lstsq'] = 'pca-residuals'
 
-mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm'
+mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm-large'
 mlt$feat2[mlt$feat2== 'word'] = 'Word Identity'
 mlt$feat2[mlt$feat2== 'phone'] = 'Phone Identity'
-mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav","sfa-ema","residuals", "wavlm"))) 
+mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav","sfa-ema","residuals", "wavlm-large"))) 
 
 word <- clf_plot(mlt %>% filter(feat2=='Word Identity'))
 phone <- clf_plot(mlt %>% filter(feat2=='Phone Identity'))
 
 p <- ggarrange(word[[1]]+ theme(axis.title.x = element_blank()), phone[[1]]+ theme(axis.title.x = element_blank()), word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), nrow=2, ncol=2, common.legend=TRUE, legend="right")
-ggsave('./data/new_results/multiclass_clf.png', height=7, width=8)
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/multiclass_clf.png', height=7, width=8)
 
 p <- ggarrange(word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), nrow=1, ncol=2, common.legend=TRUE, legend="right")
-ggsave('./data/new_results/multiclass_clf_bacc.png', height=4, width=8)
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/multiclass_clf_bacc.png', height=4, width=8)
 
 
 mlt <- multilabel_data
 mlt$feat1[mlt$feat1 == 'lstsq'] = 'residuals'
 mlt$feat1[mlt$feat1 == 'pca-lstsq'] = 'pca-residuals'
 
-mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm'
+mlt$feat1[mlt$feat1== 'wavlm-large.8'] = 'wavlm-large'
 mlt$feat2[mlt$feat2== 'phone'] = 'Articulatory Features'
-mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav", "sfa-ema", "residuals", "wavlm"))) %>% mutate(metric=metric_type)
+mlt <- mlt %>% mutate(Feature=factor(feat1, levels=c("ema", "pca-residuals", "pca-wav", "sfa-ema", "residuals", "wavlm-large"))) %>% mutate(metric=metric_type)
 art <- clf_plot(mlt)
 
 p <- ggarrange(word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), art[[2]] + theme(axis.title.x = element_blank()), nrow=1, ncol=3, common.legend=TRUE, legend="right")
-ggsave('./data/new_results/all_clf_bacc.png', height=4, width=12)
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/all_clf_bacc.png', height=4, width=12)
 
-p <- ggarrange(p2 + theme(axis.title.x = element_blank()), p3 + theme(axis.title.x = element_blank()), p4+ theme(axis.title.x = element_blank()), word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), art[[2]] + theme(axis.title.x = element_blank()), nrow=2, ncol=3, common.legend=TRUE, legend="right")
-ggsave('./data/new_results/all_performance.png', height=8, width=12)
+p <- ggarrange(p2 + theme(axis.title.x = element_blank()), p3 + theme(axis.title.x = element_blank()), p4+ theme(axis.title.x = element_blank()), word[[2]]+ theme(axis.title.x = element_blank()), phone[[2]] + theme(axis.title.x = element_blank()), art[[2]] + theme(axis.title.x = element_blank()), nrow=2, ncol=3)
+ggsave('/Users/dwiepert/Documents/SCHOOL/Grad_School/Huth/data/new_results/all_performance.png', height=8, width=12)
 
 
 ```
