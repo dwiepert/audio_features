@@ -261,9 +261,11 @@ r2_ridge <- ridge_eval %>% filter(metric=='r2') %>% group_by(feat1) %>% summaris
 
 ridge_eval <- ridge_eval %>% mutate(feats=paste0(feat1,'_', feat2))
 
-r2_ridge <- ridge_eval %>% filter(metric=='r2') %>% group_by(feats) %>% summarise(mean=mean(value), sd=sd(value))
-r2_test_byprobe <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat2,p.adjust.method='bonferroni')
-r2_test_byfeat <- ridge_eval %>% filter(metric=='r2') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat1,p.adjust.method='bonferroni')
+r2_ridge <- ridge_eval %>% filter(metric=='r2', feat2 !='fbank') %>% group_by(feat2) %>% summarise(mean=mean(value), sd=sd(value))
+r2_test_byprobe <- ridge_eval %>% filter(metric=='r2', feat2 !='fbank') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat2,p.adjust.method='bonferroni')
+r2_test_byfeat <- ridge_eval %>% filter(metric=='r2', feat2 !='fbank') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feat1,p.adjust.method='bonferroni')
+
+r2_test_all <- ridge_eval %>% filter(metric=='r2', feat2 !='fbank', feat2=='fbank40') %>% mutate(feats=paste0(feat1,'_', feat2)) %>% pairwise_t_test(value ~ feats,p.adjust.method='bonferroni')
 
 
 vars2 <- get_splits_clf(multiclass_dirs)
@@ -287,8 +289,8 @@ mlb_eval <- get_table_v3(vars3, metric='multilabel')%>%
 
 clf_eval <- rbind(mlc_eval, mlb_eval) %>% filter(metric=='balanced_accuracy') %>% mutate(feats=paste0(feat1,'_', feat2, '_', type), new_type=paste0(feat2,'_',type))
 
-clf_tst <- clf_eval %>% pairwise_t_test(value ~ feat1,p.adjust.method='bonferroni')
-clf_avg <- clf_eval %>% group_by(new_type ) %>% summarize(mean=mean(value), sd=sd(value))
+clf_tst <- clf_eval %>% pairwise_t_test(value ~ new_type,p.adjust.method='bonferroni')
+clf_avg <- clf_eval %>% group_by(new_type) %>% summarize(mean=mean(value), sd=sd(value))
 ```
 
 ```{r ridge_plots}

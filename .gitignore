@@ -21,3 +21,4 @@ newtest.py
 
 helpers/runs.txt
 .RDataTmp
+.RData
